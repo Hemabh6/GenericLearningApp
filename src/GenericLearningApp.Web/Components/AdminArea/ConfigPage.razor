@@ -1,0 +1,55 @@
+@page "/admin/config"
+@layout AdminLayout
+@attribute [Authorize]
+@inject AdminAccountService Accounts
+@inject IJSRuntime Js
+
+<PageTitle>Config (JSON) — Admin</PageTitle>
+
+@if (!Shell.Actor.Has(AdminPermissions.Menus))
+{
+    <NoAccess />
+}
+else
+{
+    <div class="ad-head">
+        <h1>Config (JSON)</h1>
+        <p>
+            A read-only snapshot of the published site settings, roles and menus, handy for a backup or for comparing
+            two environments. Editing happens on the other pages; nothing typed here is saved.
+        </p>
+    </div>
+
+    <div class="ad-acts">
+        <button class="ad-btn ghost sm" type="button" @onclick="CopyAsync">Copy JSON</button>
+        <button class="ad-btn ghost sm" type="button" @onclick="DownloadAsync">Download config</button>
+        <button class="ad-btn ghost sm" type="button" @onclick="LoadAsync">Refresh</button>
+    </div>
+
+    <pre id="cfg" tabindex="0">@_json</pre>
+}
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    private string _json = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Shell.Actor.Has(AdminPermissions.Menus)) await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try { _json = await Accounts.GetConfigJsonAsync(Shell.User); }
+        catch (AdminException ex) { Shell.Toast(ex.Message); }
+    }
+
+    private async Task CopyAsync()
+    {
+        var ok = await Js.InvokeAsync<bool>("glaCopy", _json);
+        Shell.Toast(ok ? "Config copied." : "Couldn't copy. Select the text and press Ctrl+C.");
+    }
+
+    private async Task DownloadAsync() => await Js.InvokeVoidAsync("glaDownload", "learning-desk-config.json", _json);
+}

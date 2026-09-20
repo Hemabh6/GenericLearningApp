@@ -1,0 +1,254 @@
+@page "/admin/menus"
+@layout AdminLayout
+@attribute [Authorize]
+@inject AdminAccountService Accounts
+
+<PageTitle>Menus &amp; pages — Admin</PageTitle>
+
+@if (!Shell.Actor.Has(AdminPermissions.Menus))
+{
+    <NoAccess />
+}
+else
+{
+    <div class="ad-head">
+        <h1>Menus &amp; pages</h1>
+        <p>Choose which menus the site has, what they are called, their order, and who sees them. Nothing goes live until you press Publish.</p>
+    </div>
+
+    <section class="ad-sec">
+        <div class="ad-mlist">
+            @for (var i = 0; i < Shell.Menus.Count; i++)
+            {
+                var index = i;
+                var menu = Shell.Menus[i];
+                <div class="ad-mrow @(menu.IsVisible ? "" : "off")">
+                    <div class="ad-mv">
+                        <button class="ad-ib" type="button" aria-label="Move @menu.Name up" disabled="@(index == 0)"
+                                @onclick="() => Move(index, -1)">&uarr;</button>
+                        <button class="ad-ib" type="button" aria-label="Move @menu.Name down" disabled="@(index == Shell.Menus.Count - 1)"
+                                @onclick="() => Move(index, 1)">&darr;</button>
+                    </div>
+                    <div class="ad-f nm">
+                        <label for="mn@(menu.Id)">Menu name</label>
+                        <input class="ad-fx" id="mn@(menu.Id)" maxlength="@Domain.Entities.MenuItem.NameMaxLength"
+                               @bind="menu.Name" @bind:event="oninput" @bind:after="Shell.Notify" />
+                    </div>
+                    <div class="ad-f ty">
+                        <label for="mt@(menu.Id)">Page type</label>
+                        <select class="ad-fx" id="mt@(menu.Id)" @bind="menu.Page" @bind:after="Shell.Notify">
+                            @foreach (var type in AdminText.PageTypes)
+                            {
+                                <option value="@type.Value">@type.Label</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="ad-f vi">
+                        <label for="mv@(menu.Id)">Who can see it</label>
+                        <select class="ad-fx" id="mv@(menu.Id)" @bind="menu.Access" @bind:after="Shell.Notify">
+                            @foreach (var level in AdminText.AccessLevels)
+                            {
+                                <option value="@level.Value">@level.Label</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="ad-tg">
+                        <label for="ms@(menu.Id)">Shown</label>
+                        <input class="ad-sw" id="ms@(menu.Id)" type="checkbox" role="switch"
+                               checked="@menu.IsVisible" @onchange="e => SetVisible(menu, (bool)e.Value!)" />
+                    </div>
+                    <button class="ad-btn danger sm ad-del" type="button" aria-label="Delete @menu.Name"
+                            @onclick="() => Delete(menu)">Delete</button>
+
+                    @if (menu.Access == MenuAccess.Roles)
+                    {
+                        <div class="ad-rolesel">
+                            <span class="ad-lab">Roles that can open it <span class="ad-muted" style="font-weight:400">(admins always can)</span></span>
+                            @foreach (var role in RoleNames)
+                            {
+                                <label class="ad-cb">
+                                    <input type="checkbox" checked="@menu.Roles.Contains(role, StringComparer.OrdinalIgnoreCase)"
+                                           @onchange="e => ToggleRole(menu, role, (bool)e.Value!)" /> @role
+                                </label>
+                            }
+                        </div>
+                    }
+
+                    @if (menu.Page == MenuPage.Link)
+                    {
+                        <div class="ad-f ad-url">
+                            <label for="mu@(menu.Id)">Link address</label>
+                            <input class="ad-fx" id="mu@(menu.Id)" placeholder="https://" maxlength="@Domain.Entities.MenuItem.UrlMaxLength"
+                                   @bind="menu.Url" @bind:event="oninput" @bind:after="Shell.Notify" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div><button class="ad-btn ghost" type="button" @onclick="Add">Add a menu</button></div>
+        <p class="ad-small ad-muted">
+            "Everyone" includes visitors who haven't signed in. "Signed-in users" includes guests, who have a temporary
+            account. Only pages this app really has can be menus: Home, Subjects, FAQ, or a link elsewhere. A subject's
+            own sections (notes, content, roadmap, tests) always appear inside that subject.
+        </p>
+    </section>
+
+    <section class="ad-sec">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
+            <h2>Preview</h2>
+            <div class="ad-f" style="min-width:220px">
+                <label for="pvas">Preview as</label>
+                <select class="ad-fx" id="pvas" value="@_pvAs" @onchange="OnPreview">
+                    <option value="guest">Guest (not signed in)</option>
+                    @foreach (var role in Shell.Roles)
+                    {
+                        <option value="role:@role.Name">Anyone with the role @role.Name</option>
+                    }
+                    @if (_people is not null)
+                    {
+                        @foreach (var person in _people.Rows.Where(p => p.Status != "Guest"))
+                        {
+                            <option value="user:@person.Id">@person.Name (@(person.Role ?? BuiltInRoles.Learner))</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="ad-pv ad-band">
+            @{ var shown = Preview(); }
+            @if (shown.Count == 0)
+            {
+                <p class="ad-empty">This person would see no menus.</p>
+            }
+            else
+            {
+                <div class="ad-pvbar" aria-label="Desktop preview">
+                    <b>@Shell.Site.Name</b>
+                    @foreach (var m in shown)
+                    {
+                        <span>@(string.IsNullOrWhiteSpace(m.Name) ? "Untitled" : m.Name)</span>
+                    }
+                </div>
+                <div class="ad-pvph">
+                    <div class="ad-phone" aria-label="Phone preview">
+                        @foreach (var m in shown)
+                        {
+                            <div>@(string.IsNullOrWhiteSpace(m.Name) ? "Untitled" : m.Name)</div>
+                        }
+                    </div>
+                    <p class="ad-small ad-muted" style="flex:1;min-width:180px">
+                        @shown.Count of @Shell.Menus.Count menus shown to @PreviewWho. On phones the tab bar becomes this drawer.
+                    </p>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    private string _pvAs = "guest";
+    private MenuViewer _viewer = MenuViewer.Anonymous;
+    private IReadOnlyDictionary<Guid, OverrideMode> _overrides = new Dictionary<Guid, OverrideMode>();
+    private PeopleList? _people;
+
+    private IEnumerable<string> RoleNames => Shell.Roles.Where(r => !AccountRules.IsAdmin(r.Name)).Select(r => r.Name);
+
+    private string PreviewWho => _pvAs == "guest" ? "a guest"
+        : _pvAs.StartsWith("role:") ? $"anyone with the role {_pvAs[5..]}"
+        : _people?.Rows.FirstOrDefault(p => "user:" + p.Id == _pvAs)?.Name ?? "this person";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The person picker needs the People permission; without it the role-based previews still work.
+        if (Shell.Actor.Has(AdminPermissions.Menus) && Shell.Actor.Has(AdminPermissions.People))
+        {
+            _people = await Accounts.ListPeopleAsync(Shell.User, null, includeGuests: false);
+        }
+    }
+
+    private IReadOnlyList<MenuDto> Preview() => MenuAccessRules.Visible(Shell.ToMenus(), _viewer, _overrides);
+
+    private async Task OnPreview(ChangeEventArgs e)
+    {
+        _pvAs = e.Value?.ToString() ?? "guest";
+        _overrides = new Dictionary<Guid, OverrideMode>();
+
+        if (_pvAs.StartsWith("role:"))
+        {
+            var role = _pvAs[5..];
+            _viewer = new MenuViewer(true, string.Equals(role, BuiltInRoles.Learner, StringComparison.OrdinalIgnoreCase) ? null : role);
+        }
+        else if (_pvAs.StartsWith("user:"))
+        {
+            var found = await Accounts.GetViewerByIdAsync(Shell.User, _pvAs[5..]);
+            (_viewer, _overrides) = found ?? (MenuViewer.Anonymous, _overrides);
+        }
+        else
+        {
+            _viewer = MenuViewer.Anonymous;
+        }
+    }
+
+    private void Move(int index, int by)
+    {
+        var to = index + by;
+        if (to < 0 || to >= Shell.Menus.Count) return;
+
+        var item = Shell.Menus[index];
+        Shell.Menus.RemoveAt(index);
+        Shell.Menus.Insert(to, item);
+        Shell.Notify();
+    }
+
+    private void Add()
+    {
+        Shell.Menus.Add(new MenuEdit
+        {
+            Id = Guid.NewGuid(),
+            Name = "New menu",
+            Page = MenuPage.Link,
+            Access = MenuAccess.Signed,
+            IsVisible = true,
+            Url = "https://",
+        });
+        Shell.Notify();
+    }
+
+    private void SetVisible(MenuEdit menu, bool visible)
+    {
+        menu.IsVisible = visible;
+        EnsureLanding();
+        Shell.Notify();
+    }
+
+    private void ToggleRole(MenuEdit menu, string role, bool on)
+    {
+        var has = menu.Roles.Any(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
+        if (on && !has) menu.Roles.Add(role);
+        if (!on && has) menu.Roles.RemoveAll(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
+        Shell.Notify();
+    }
+
+    private void Delete(MenuEdit menu)
+    {
+        var before = Shell.Snapshot();
+        Shell.Menus.Remove(menu);
+        EnsureLanding();
+
+        Shell.Toast($"Deleted menu \"{menu.Name}\".", () =>
+        {
+            Shell.Restore(before);
+            Shell.Notify();
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>The landing page can't point at a menu that is gone or hidden.</summary>
+    private void EnsureLanding()
+    {
+        if (Shell.Site.Landing is { } id && !Shell.Menus.Any(m => m.Id == id && m.IsVisible))
+            Shell.Site.Landing = null;
+    }
+}

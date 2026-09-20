@@ -1,0 +1,21 @@
+@inject SiteConfigStore Site
+
+@* Posts to /Account/GuestSignIn. Like the provider buttons, it must sit outside the page's own <form>.
+   An admin can switch guests off, which removes the button (and the endpoint refuses too). *@
+@if (Site.Current.Settings.AllowGuests)
+{
+    <form action="Account/GuestSignIn" method="post" class="sp-alt">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+        <button type="submit" class="sp-btn ghost">Try it as a guest</button>
+        <p class="sp-fine">
+            Your progress is saved on this device only. Clear your browser data or switch devices and it is gone,
+            so create an account to keep it.
+        </p>
+    </form>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+}

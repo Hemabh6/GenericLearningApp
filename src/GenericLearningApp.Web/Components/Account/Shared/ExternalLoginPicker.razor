@@ -1,0 +1,77 @@
+@using Microsoft.AspNetCore.Identity
+@using GenericLearningApp.Web.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IHostEnvironment Environment
+
+@* Must sit outside the page's own <form>: forms cannot nest, and this one posts to the provider.
+   Google and Microsoft are always the two named buttons. A provider without credentials is shown
+   disabled in Development so the layout is visible, and left out in Production. *@
+@if (providers.Count > 0)
+{
+    <div class="sp-or">or continue with</div>
+    <form action="Account/PerformExternalLogin" method="post">
+        <AntiforgeryToken />
+        <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+        <div class="sp-sso">
+            @foreach (var provider in providers)
+            {
+                <button type="submit" class="sp-btn ghost" name="provider" value="@provider.Scheme"
+                        disabled="@(!provider.Configured)"
+                        title="@(provider.Configured ? $"Log in using your {provider.Label} account" : $"{provider.Label} sign-in is not configured yet")">
+                    @if (provider.Icon is not null)
+                    {
+                        @((MarkupString)provider.Icon)
+                    }
+                    @provider.Label
+                </button>
+            }
+        </div>
+        @if (providers.Any(p => !p.Configured))
+        {
+            <p class="sp-fine">
+                Development only: a greyed-out button has no client id and secret yet. See "Google and
+                Microsoft sign-in" in the README.
+            </p>
+        }
+    </form>
+}
+
+@code {
+    private const string GoogleIcon =
+        "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path fill=\"#4285F4\" d=\"M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z\"/><path fill=\"#34A853\" d=\"M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0 0 12 22z\"/><path fill=\"#FBBC05\" d=\"M6.200 13.600a6 6 0 0 1 0-3.800V7.100H2.700a10 10 0 0 0 0 9.200z\"/><path fill=\"#EA4335\" d=\"M12 6c1.500 0 2.900.5 4 1.600l3-3A10 10 0 0 0 2.700 7.100l3.500 2.700C7 7.800 9.300 6 12 6z\"/></svg>";
+
+    private const string MicrosoftIcon =
+        "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path fill=\"#F25022\" d=\"M2 2h9.500v9.500H2z\"/><path fill=\"#7FBA00\" d=\"M12.500 2H22v9.500h-9.500z\"/><path fill=\"#00A4EF\" d=\"M2 12.500h9.500V22H2z\"/><path fill=\"#FFB900\" d=\"M12.500 12.500H22V22h-9.500z\"/></svg>";
+
+    private sealed record Provider(string Scheme, string Label, string? Icon, bool Configured);
+
+    private List<Provider> providers = [];
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var registered = (await SignInManager.GetExternalAuthenticationSchemesAsync())
+            .ToDictionary(s => s.Name, s => s.DisplayName ?? s.Name);
+
+        var named = new (string Scheme, string Label, string Icon)[]
+        {
+            ("Google", "Google", GoogleIcon),
+            ("Microsoft", "Microsoft", MicrosoftIcon),
+        };
+
+        foreach (var (scheme, label, icon) in named)
+        {
+            var configured = registered.Remove(scheme);
+            if (configured || Environment.IsDevelopment())
+            {
+                providers.Add(new Provider(scheme, label, icon, configured));
+            }
+        }
+
+        // Any other provider the app registers later still gets a plain button.
+        providers.AddRange(registered.Select(p => new Provider(p.Key, p.Value, null, true)));
+    }
+}

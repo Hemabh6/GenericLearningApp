@@ -1,0 +1,77 @@
+# One box runs everything: app, database, TLS and the nightly dump.
+# Target: Oracle Cloud Always Free Ampere A1 (2 OCPU / 12 GB), Mumbai or Hyderabad.
+name: genericlearningapp
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: genericlearningapp
+      POSTGRES_USER: gla
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gla -d genericlearningapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Caddy terminates TLS; without this the Google/Microsoft callback URL would be http://.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      ConnectionStrings__DefaultConnection: >-
+        Host=db;Port=5432;Database=genericlearningapp;Username=gla;Password=${POSTGRES_PASSWORD}
+      # The super admin: created on first start if the email has no account yet, promoted if it does.
+      # Never removable or demotable from the admin area. Required to reach /admin at all.
+      Admin__SuperAdminEmail: ${SUPERADMIN_EMAIL:?set SUPERADMIN_EMAIL in .env}
+      Admin__SuperAdminPassword: ${SUPERADMIN_PASSWORD:-}
+      # Optional. A provider with an empty id or secret is simply not offered on the sign-in page.
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Authentication__Microsoft__ClientId: ${MICROSOFT_CLIENT_ID:-}
+      Authentication__Microsoft__ClientSecret: ${MICROSOFT_CLIENT_SECRET:-}
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./deploy/backup.sh:/usr/local/bin/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+  backups:

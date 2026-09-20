@@ -1,0 +1,19 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>Admin</PageTitle>
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    /// <summary>The admin area has no home of its own: open the first section this person can use.</summary>
+    protected override void OnInitialized()
+    {
+        var target = Shell.Actor.Has(AdminPermissions.Menus) ? "admin/site"
+            : Shell.Actor.Has(AdminPermissions.People) ? "admin/people"
+            : "admin/roles";
+        Nav.NavigateTo(target, replace: true);
+    }
+}

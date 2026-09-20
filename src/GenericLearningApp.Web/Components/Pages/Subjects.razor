@@ -1,0 +1,90 @@
+@page "/subjects"
+@attribute [Authorize]
+@inject ISubjectService SubjectService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Subjects — Learning Desk</PageTitle>
+
+<div class="page">
+    <div class="sectionhead">
+        <div class="eyebrow">Subjects</div>
+        <h2>What are you studying?</h2>
+        <p class="muted">Each subject is its own workspace: notes, content list, roadmap and tests.</p>
+    </div>
+
+    @if (_subjects is null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else
+    {
+        @if (_subjects.Count == 0)
+        {
+            <div class="empty">
+                <h3>No subjects yet</h3>
+                <p class="muted">Create one below and the rest of the app opens up.</p>
+            </div>
+        }
+        else
+        {
+            <div class="cards">
+                @foreach (var subject in _subjects)
+                {
+                    <a class="card" href="@($"s/{subject.Id}")">
+                        <h3>@subject.Name</h3>
+                        <p class="muted small">Started @subject.CreatedAt.ToLocalTime().ToString("d MMM yyyy")</p>
+                        <span class="go">Open</span>
+                    </a>
+                }
+            </div>
+        }
+
+        <div class="sectionhead"><h3>Add a subject</h3></div>
+        <EditForm Model="_form" OnValidSubmit="Create" FormName="new-subject">
+            <div class="row">
+                <InputText class="filter" @bind-Value="_form.Name" placeholder="e.g. Linear algebra"
+                           aria-label="Subject name" />
+                <button class="btn" type="submit">Create</button>
+            </div>
+        </EditForm>
+
+        @if (_error is not null)
+        {
+            <p class="small" style="color:var(--bad)">@_error</p>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<SubjectListItem>? _subjects;
+    private readonly NewSubject _form = new();
+    private string? _error;
+    private string _userId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        _subjects = await SubjectService.ListAsync(_userId);
+    }
+
+    private async Task Create()
+    {
+        _error = null;
+        try
+        {
+            var id = await SubjectService.CreateAsync(_userId, _form.Name);
+            Nav.NavigateTo($"s/{id}");
+        }
+        catch (GenericLearningApp.Domain.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private sealed class NewSubject
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+}

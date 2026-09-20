@@ -1,0 +1,23 @@
+@page "/s/{SubjectId:guid}/notes"
+@attribute [Authorize]
+
+<PageTitle>Notes &amp; Reference — Learning Desk</PageTitle>
+
+<SubjectPage SubjectId="SubjectId">
+    <div class="page">
+        <div class="sectionhead">
+            <div class="eyebrow">Notes &amp; Reference</div>
+            <h2>Your notes</h2>
+            <p class="muted">Write what you learned in your own words. Changes save as you type.</p>
+        </div>
+
+        <div class="empty">
+            <h3>Nothing here yet</h3>
+            <p class="muted">Note editing, search and the reference table arrive in slice 2.</p>
+        </div>
+    </div>
+</SubjectPage>
+
+@code {
+    [Parameter] public Guid SubjectId { get; set; }
+}

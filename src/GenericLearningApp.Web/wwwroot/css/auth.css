@@ -1,0 +1,161 @@
+/* Identity's pages ship with Bootstrap class names. Rather than rewrite fifteen pages,
+   those class names are mapped onto Bronze tokens here, and the two pages people
+   actually see — Login and Register — use the .auth-* classes below. */
+
+/* ---- the card ---- */
+.auth {
+  max-width: 460px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+.auth-wide { max-width: 760px; }
+
+.auth-head { display: flex; flex-direction: column; gap: var(--space-1); text-align: center; }
+.auth-head h1 { font-size: 34px; line-height: 40px; }
+
+.auth-card {
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label,
+.auth-card .form-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+/* ---- controls ---- */
+.form-control,
+.auth input[type="text"],
+.auth input[type="email"],
+.auth input[type="password"],
+.auth input[type="tel"],
+.auth input[type="url"],
+.filter {
+  width: 100%;
+  border: 1px solid var(--ink-muted);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.form-control:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+.form-check-input,
+.checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--bronze);
+  margin: 0;
+}
+.checkbox label,
+.form-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 400;
+}
+
+/* Bootstrap's floating labels collapse to a plain stacked field. */
+.form-floating { display: flex; flex-direction: column-reverse; gap: 6px; }
+.mb-3 { margin-bottom: var(--space-2); }
+
+/* ---- buttons ---- */
+.btn-primary,
+.btn-lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  border: 1px solid var(--bronze);
+  background: var(--bronze);
+  color: var(--on-accent);
+  border-radius: var(--radius-md);
+  padding: 11px 18px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.w-100 { width: 100%; }
+
+.btn-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ---- messages ---- */
+.text-danger, .validation-message { color: var(--bad); font-size: 14px; line-height: 20px; }
+.text-success { color: var(--ok); font-size: 14px; line-height: 20px; }
+.text-secondary { color: var(--ink-muted); }
+
+.alert, .status-message {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bronze);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.alert-danger { border-left-color: var(--bad); }
+.alert-success { border-left-color: var(--ok); }
+
+.auth hr, .auth-sep {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin-block: var(--space-1);
+}
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.auth-or::before, .auth-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+
+.auth-links { display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 20px; }
+.auth-links p { margin: 0; }
+
+/* ---- Identity's Manage pages ---- */
+.nav-pills { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; }
+.nav-pills .nav-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.nav-pills .nav-link:hover { color: var(--ink); background: var(--surface-warm); }
+.nav-pills .nav-link.active { background: var(--bronze); color: var(--on-accent); font-weight: 600; }
+
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
+.col-md-3, .col-md-4, .col-md-6, .col-lg-4, .col-lg-6, .col-xl-6 { min-width: 0; }
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.mx-auto { margin-inline: auto; }
+.mt-2 { margin-top: var(--space-1); }

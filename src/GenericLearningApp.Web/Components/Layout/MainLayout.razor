@@ -1,0 +1,194 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using GenericLearningApp.Web.Data
+@inject IJSRuntime Js
+@inject NavigationManager Nav
+@inject SiteConfigStore Site
+@inject SiteAccess Access
+@inject AdminAccountService Accounts
+@inject AuthenticationStateProvider AuthState
+
+<header class="top">
+    <div class="wrap">
+        <a class="brand" href="" style="text-decoration:none;color:inherit">@Site.Current.Settings.Name</a>
+        <nav>
+            @if (_subjectId is { } id)
+            {
+                <NavLink href="@($"s/{id}")" Match="NavLinkMatch.All">Overview</NavLink>
+                <NavLink href="@($"s/{id}/content")">Videos &amp; Content</NavLink>
+                <NavLink href="@($"s/{id}/notes")">Notes &amp; Reference</NavLink>
+                <NavLink href="@($"s/{id}/roadmap")">Timeline &amp; Roadmap</NavLink>
+                <NavLink href="@($"s/{id}/tests")">Tests</NavLink>
+                @foreach (var menu in _menus.Where(m => m.Page != Domain.Enums.MenuPage.Home))
+                {
+                    @MenuLink(menu)
+                }
+            }
+            else
+            {
+                @foreach (var menu in _menus)
+                {
+                    @MenuLink(menu)
+                }
+            }
+            @if (_hasAdmin)
+            {
+                <NavLink href="admin">Admin</NavLink>
+            }
+        </nav>
+
+        <AuthorizeView>
+            <Authorized>
+                <a class="small muted" href="Account/Manage" style="white-space:nowrap">@(GuestAccount.IsGuest(context.User.Identity?.Name) ? "Guest" : context.User.Identity?.Name)</a>
+                <form action="Account/Logout" method="post" style="display:inline">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@_returnUrl" />
+                    <button class="theme-btn" type="submit">Sign out</button>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <a class="theme-btn" href="Account/Login" style="text-decoration:none">Sign in</a>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <button class="theme-btn" type="button" @onclick="ToggleTheme"
+                aria-label="Toggle light or dark theme">Theme</button>
+    </div>
+</header>
+
+<main>
+    <div class="wrap">
+        @Body
+    </div>
+</main>
+
+<footer class="small muted">
+    @Site.Current.Settings.Name. Your notes, ticks and scores are saved to your account.
+</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private Guid? _subjectId;
+    private string _returnUrl = string.Empty;
+    private IReadOnlyList<MenuDto> _menus = [];
+    private bool _hasAdmin;
+
+    private RenderFragment MenuLink(MenuDto menu) => builder =>
+    {
+        if (menu.IsExternal)
+        {
+            builder.OpenElement(0, "a");
+            builder.AddAttribute(1, "href", menu.Href);
+            builder.AddAttribute(2, "target", "_blank");
+            builder.AddAttribute(3, "rel", "noopener noreferrer");
+            builder.AddContent(4, menu.Name);
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenComponent<NavLink>(5);
+            builder.AddAttribute(6, "href", menu.Href);
+            builder.AddAttribute(7, "Match", menu.Href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix);
+            builder.AddAttribute(8, "ChildContent", (RenderFragment)(b => b.AddContent(9, menu.Name)));
+            builder.CloseComponent();
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Site.Changed += OnSiteChanged;
+        ReadRoute();
+        await LoadNavAsync();
+    }
+
+    /// <summary>The nav shows what this person may open: the published menus, their role, their exceptions.</summary>
+    private async Task LoadNavAsync()
+    {
+        try
+        {
+            var user = (await AuthState.GetAuthenticationStateAsync()).User;
+            var (viewer, overrides) = await Accounts.GetViewerAsync(user);
+            _menus = MenuAccessRules.Visible(Site.Current.Menus, viewer, overrides);
+
+            var actor = viewer.IsSignedIn ? await Accounts.GetActorAsync(user) : null;
+            _hasAdmin = actor?.AnyPermission == true;
+        }
+        catch (Exception)
+        {
+            // A navigation bar must never take the page down; fall back to showing every visible menu.
+            _menus = Site.Current.Menus.Where(m => m.IsVisible && m.Access == Domain.Enums.MenuAccess.Everyone).ToList();
+            _hasAdmin = false;
+        }
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        ReadRoute();
+
+        // In-circuit navigation never passes through the request pipeline, so apply the site rules here too.
+        try
+        {
+            var user = (await AuthState.GetAuthenticationStateAsync()).User;
+            var decision = await Access.CheckAsync(user, new Uri(e.Location).AbsolutePath);
+
+            if (decision == AccessDecision.SignIn)
+                Nav.NavigateTo($"Account/Login?ReturnUrl={Uri.EscapeDataString(Nav.ToBaseRelativePath(e.Location))}", forceLoad: true);
+            else if (decision == AccessDecision.Denied)
+                Nav.NavigateTo("Account/AccessDenied", forceLoad: true);
+        }
+        catch (Exception)
+        {
+            // The pipeline already guarded the first load; a failed re-check just leaves the page as is.
+        }
+
+        await Redraw();
+    }
+
+    private async void OnSiteChanged()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadNavAsync();
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // The circuit closed while an admin was publishing.
+        }
+    }
+
+    private async Task Redraw()
+    {
+        try { await InvokeAsync(StateHasChanged); }
+        catch (ObjectDisposedException) { }
+    }
+
+    /// <summary>The nav follows the URL: inside /s/{id} it shows that subject's sections.</summary>
+    private void ReadRoute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        _returnUrl = path;
+
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        _subjectId = segments.Length >= 2 && segments[0] == "s" && Guid.TryParse(segments[1], out var id)
+            ? id
+            : null;
+    }
+
+    private async Task ToggleTheme() => await Js.InvokeVoidAsync("glaToggleTheme");
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        Site.Changed -= OnSiteChanged;
+    }
+}

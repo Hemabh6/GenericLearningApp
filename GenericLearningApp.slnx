@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GenericLearningApp.Application/GenericLearningApp.Application.csproj" />
+    <Project Path="src/GenericLearningApp.Domain/GenericLearningApp.Domain.csproj" />
+    <Project Path="src/GenericLearningApp.Infrastructure/GenericLearningApp.Infrastructure.csproj" />
+    <Project Path="src/GenericLearningApp.Web/GenericLearningApp.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GenericLearningApp.Application.Tests/GenericLearningApp.Application.Tests.csproj" />
+    <Project Path="tests/GenericLearningApp.Domain.Tests/GenericLearningApp.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,8 @@
+<div class="ad-band">
+    <h2>Not available to you</h2>
+    <p class="ad-muted">@(Message ?? "Your role doesn't include this section. An admin can change what your role can do.")</p>
+</div>
+
+@code {
+    [Parameter] public string? Message { get; set; }
+}

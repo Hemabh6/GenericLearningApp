@@ -1,0 +1,265 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>[hidden]{display:none!important}body{margin:0}</style><title>Learning Desk Sign-in</title>
+<style>
+:root{
+  --surface:#ffffff;--surface-warm:#f4efe7;--border:#ddd5c8;
+  --ink:#000000;--ink-muted:#595959;
+  --bronze:#8f5a39;--accent-text:#8f5a39;--blue:#117aca;--navy:#004b87;--link:#004b87;--on-accent:#ffffff;
+  --ok:#1f6f45;--bad:#b3261e;--field:#ffffff;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --r-sm:4px;--r-md:8px;--s1:8px;--s2:16px;--s3:24px;--s4:40px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#000000;--surface-warm:#161412;--border:#2e2a26;--ink:#ffffff;--ink-muted:#b5b5b5;
+  --accent-text:#c8956f;--link:#117aca;--ok:#4cc38a;--bad:#ff8a80;--field:#0d0c0b}}
+:root[data-theme="dark"]{
+  --surface:#000000;--surface-warm:#161412;--border:#2e2a26;--ink:#ffffff;--ink-muted:#b5b5b5;
+  --accent-text:#c8956f;--link:#117aca;--ok:#4cc38a;--bad:#ff8a80;--field:#0d0c0b}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/24px var(--sans);padding-inline:var(--s2)}
+h1,h2{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance}
+p{margin:0}a{color:var(--link)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+.eyebrow{font-size:12px;line-height:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.muted{color:var(--ink-muted)}
+
+.shell{max-width:1040px;margin-inline:auto;min-height:100vh;display:grid;grid-template-columns:1fr;align-items:stretch}
+.side{background:var(--surface-warm);margin-inline:calc(var(--s2) * -1);padding:var(--s3) var(--s2);display:flex;flex-direction:column;gap:var(--s3)}
+.brand{font-family:var(--serif);font-size:22px}
+.side h1{font-size:clamp(30px,5vw,46px);line-height:1.08}
+.side .lede{max-width:44ch;color:var(--ink-muted)}
+.peek{display:none;flex-direction:column;gap:12px;margin-top:auto}
+.peek .row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;line-height:20px}
+.bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--bronze)}
+.tag{font-size:12px;color:var(--ink-muted)}
+
+.main{padding-block:var(--s4);display:flex;flex-direction:column;gap:var(--s3);justify-content:center}
+.top{display:flex;justify-content:space-between;align-items:center}
+#themeBtn{background:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer;font-size:13px;color:var(--ink-muted);min-height:32px}
+.panel{width:100%;max-width:400px;margin-inline:auto;display:flex;flex-direction:column;gap:var(--s3)}
+.tabs{display:flex;border-bottom:1px solid var(--border)}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:12px 8px;cursor:pointer;color:var(--ink-muted);font-size:15px;min-height:44px;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--bronze);font-weight:600}
+form{display:flex;flex-direction:column;gap:var(--s2)}
+.f{display:flex;flex-direction:column;gap:6px}
+.f label,.lab{font-size:14px;font-weight:600}
+.in{display:flex;border:1px solid var(--ink-muted);border-radius:var(--r-md);background:var(--field)}
+.in:focus-within{outline:2px solid var(--link);outline-offset:1px}
+.in input{flex:1;min-width:0;border:0;background:none;padding:12px 14px;min-height:46px;border-radius:var(--r-md);outline:0}
+.in.err{border-color:var(--bad)}
+.in button{background:none;border:0;padding:0 14px;cursor:pointer;color:var(--accent-text);font-size:13px;font-weight:600;min-width:56px}
+.msg{font-size:13px;line-height:18px;color:var(--bad);min-height:0}
+.msg:empty{display:none}
+.meter{display:flex;gap:4px;margin-top:2px}
+.meter i{flex:1;height:4px;border-radius:2px;background:var(--border)}
+.meter i.on{background:var(--bronze)}
+.meter i.ok{background:var(--ok)}
+.line{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--bronze);margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--bronze);background:var(--bronze);color:var(--on-accent);border-radius:var(--r-md);padding:12px 18px;min-height:48px;cursor:pointer;font-weight:600;width:100%}
+.btn:disabled{opacity:.7;cursor:progress}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--ink-muted);font-weight:500}
+.btn.ghost:hover{border-color:var(--ink)}
+.or{display:flex;align-items:center;gap:12px;color:var(--ink-muted);font-size:13px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--border)}
+.sso{display:grid;grid-template-columns:1fr 1fr;gap:var(--s1)}
+.sso .btn{padding:10px 8px;font-size:14px}
+.sso svg{width:18px;height:18px;flex:none}
+.note{font-size:13px;line-height:18px;color:var(--ink-muted);border-left:3px solid var(--bronze);padding:2px 0 2px 12px}
+.ok{color:var(--ok)}
+.back{background:none;border:0;padding:0;cursor:pointer;color:var(--link);text-align:left;font-size:14px;min-height:32px}
+.fine{font-size:12px;line-height:18px;color:var(--ink-muted)}
+[data-view]{display:flex;flex-direction:column;gap:var(--s3)}
+[data-view][hidden]{display:none!important}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (min-width:860px){
+  .shell{grid-template-columns:1.05fr 1fr}
+  .side{margin-inline:0;margin-left:calc(50% - 50vw);padding:var(--s4) var(--s4) var(--s4) calc(50vw - 50% + var(--s4));justify-content:flex-start}
+  .peek{display:flex}
+  .main{padding:var(--s4) 0 var(--s4) var(--s4)}
+}
+@media (max-width:420px){.sso{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
+</style></head><body>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">Learning Desk</div>
+    <h1>Pick up exactly where you left off.</h1>
+    <p class="lede">Your videos, notes, roadmap and test scores stay together and follow you from your laptop to your phone.</p>
+    <div class="peek" aria-label="Example progress">
+      <span class="eyebrow">Example of what you'll see</span>
+      <div class="row"><span>Linear algebra videos</span><span class="tag">9 of 16 watched</span><div class="bar"><i style="width:56%"></i></div></div>
+      <div class="row"><span>Phase 2: Build a small GPT</span><span class="tag">Week 3 of 8</span><div class="bar"><i style="width:38%"></i></div></div>
+      <div class="row"><span>Tests: latest score</span><span class="tag">7 / 10</span><div class="bar"><i style="width:70%"></i></div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <span class="eyebrow">Sign in</span>
+      <button id="themeBtn" type="button" aria-label="Toggle light or dark theme">Theme</button>
+    </div>
+
+    <div class="panel">
+      <section data-view="auth">
+        <div class="tabs" role="tablist" aria-label="Account">
+          <button role="tab" id="tabIn" aria-selected="true" aria-controls="formIn" type="button">Sign in</button>
+          <button role="tab" id="tabUp" aria-selected="false" aria-controls="formUp" type="button">Create account</button>
+        </div>
+
+        <form id="formIn" novalidate>
+          <div>
+            <h2>Welcome back</h2>
+            <p class="muted">Sign in to load your saved progress.</p>
+          </div>
+          <div class="f">
+            <label for="inEmail">Email</label>
+            <div class="in" id="inEmailBox"><input id="inEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></div>
+            <p class="msg" id="inEmailMsg" role="alert"></p>
+          </div>
+          <div class="f">
+            <label for="inPw">Password</label>
+            <div class="in" id="inPwBox"><input id="inPw" type="password" autocomplete="current-password" placeholder="Your password"><button type="button" data-show="inPw" aria-label="Show password">Show</button></div>
+            <p class="msg" id="inPwMsg" role="alert"></p>
+          </div>
+          <div class="line">
+            <label class="chk"><input id="remember" type="checkbox" checked> Keep me signed in</label>
+            <button type="button" class="back" id="toForgot">Forgot password?</button>
+          </div>
+          <button class="btn" type="submit" id="goIn">Sign in</button>
+        </form>
+
+        <form id="formUp" novalidate hidden>
+          <div>
+            <h2>Create your desk</h2>
+            <p class="muted">Free. Your progress is saved from the first video.</p>
+          </div>
+          <div class="f">
+            <label for="upName">Name</label>
+            <div class="in"><input id="upName" type="text" autocomplete="name" placeholder="What should we call you?"></div>
+          </div>
+          <div class="f">
+            <label for="upEmail">Email</label>
+            <div class="in" id="upEmailBox"><input id="upEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></div>
+            <p class="msg" id="upEmailMsg" role="alert"></p>
+          </div>
+          <div class="f">
+            <label for="upPw">Password</label>
+            <div class="in" id="upPwBox"><input id="upPw" type="password" autocomplete="new-password" placeholder="At least 8 characters"><button type="button" data-show="upPw" aria-label="Show password">Show</button></div>
+            <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <p class="fine" id="pwHint">Use 8 or more characters. Mix letters, numbers and a symbol for a stronger password.</p>
+            <p class="msg" id="upPwMsg" role="alert"></p>
+          </div>
+          <button class="btn" type="submit" id="goUp">Create account</button>
+          <p class="fine">By creating an account you agree to the <a href="#" data-noop>Terms</a> and <a href="#" data-noop>Privacy Policy</a>.</p>
+        </form>
+
+        <div class="or">or continue with</div>
+        <div class="sso">
+          <button class="btn ghost" type="button" data-noop>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z"/><path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.200 13.600a6 6 0 0 1 0-3.800V7.100H2.700a10 10 0 0 0 0 9.200z"/><path fill="#EA4335" d="M12 6c1.500 0 2.900.5 4 1.600l3-3A10 10 0 0 0 2.700 7.100l3.500 2.700C7 7.800 9.300 6 12 6z"/></svg>
+            Google</button>
+          <button class="btn ghost" type="button" data-noop>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F25022" d="M2 2h9.500v9.500H2z"/><path fill="#7FBA00" d="M12.500 2H22v9.500h-9.500z"/><path fill="#00A4EF" d="M2 12.500h9.500V22H2z"/><path fill="#FFB900" d="M12.500 12.500H22V22h-9.500z"/></svg>
+            Microsoft</button>
+        </div>
+        <button class="btn ghost" type="button" id="guest">Try it as a guest</button>
+        <p class="note" id="status" role="status">Design preview: this form shows the layout and states only. It does not sign anyone in or store anything. Connect it to your own sign-in service.</p>
+      </section>
+
+      <section data-view="forgot" hidden>
+        <button class="back" type="button" id="backIn">&larr; Back to sign in</button>
+        <form id="formForgot" novalidate>
+          <div>
+            <h2>Reset your password</h2>
+            <p class="muted">Enter your email and we'll send a link to choose a new one.</p>
+          </div>
+          <div class="f">
+            <label for="fgEmail">Email</label>
+            <div class="in" id="fgEmailBox"><input id="fgEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></div>
+            <p class="msg" id="fgEmailMsg" role="alert"></p>
+          </div>
+          <button class="btn" type="submit" id="goFg">Send reset link</button>
+        </form>
+        <p class="note ok" id="fgDone" role="status" hidden>If that email has an account, a reset link is on its way. Check your spam folder too. (Preview: nothing was sent.)</p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  /* theme */
+  var root=document.documentElement;
+  try{var t=localStorage.getItem("ld.theme");if(t)root.setAttribute("data-theme",t)}catch(e){}
+  $("themeBtn").addEventListener("click",function(){
+    var dark=root.getAttribute("data-theme")==="dark"||(!root.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches);
+    var n=dark?"light":"dark";root.setAttribute("data-theme",n);try{localStorage.setItem("ld.theme",n)}catch(e){}
+  });
+  /* views */
+  function view(v){document.querySelectorAll("[data-view]").forEach(function(s){s.hidden=s.dataset.view!==v})}
+  function tab(up){
+    $("tabIn").setAttribute("aria-selected",!up);$("tabUp").setAttribute("aria-selected",up);
+    $("formIn").hidden=up;$("formUp").hidden=!up;
+  }
+  $("tabIn").onclick=function(){tab(false)};$("tabUp").onclick=function(){tab(true)};
+  $("toForgot").onclick=function(){view("forgot");$("fgEmail").focus()};
+  $("backIn").onclick=function(){view("auth")};
+  /* show/hide password */
+  document.querySelectorAll("[data-show]").forEach(function(b){b.onclick=function(){
+    var i=$(b.dataset.show),h=i.type==="password";i.type=h?"text":"password";
+    b.textContent=h?"Hide":"Show";b.setAttribute("aria-label",h?"Hide password":"Show password");
+  }});
+  document.querySelectorAll("[data-noop]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();$("status").textContent="Preview only: connect this button to your sign-in provider."})});
+  $("guest").onclick=function(){$("status").textContent="Preview only: this would open the app with progress saved on this device."};
+  /* validation */
+  var re=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function bad(box,msg,text){$(box).classList.add("err");$(msg).textContent=text}
+  function good(box,msg){$(box).classList.remove("err");$(msg).textContent=""}
+  function email(id,box,msg){var v=$(id).value.trim();
+    if(!v){bad(box,msg,"Enter your email address.");return false}
+    if(!re.test(v)){bad(box,msg,"That email looks incomplete. Check for a missing @ or domain, like name@example.com.");return false}
+    good(box,msg);return true}
+  function pw(id,box,msg,min){var v=$(id).value;
+    if(!v){bad(box,msg,"Enter your password.");return false}
+    if(min&&v.length<8){bad(box,msg,"Use at least 8 characters.");return false}
+    good(box,msg);return true}
+  function busy(btn,label,done){
+    btn.disabled=true;btn.innerHTML='<span class="spin"></span> Working';
+    setTimeout(function(){btn.disabled=false;btn.textContent=label;done()},800);
+  }
+  $("formIn").addEventListener("submit",function(e){e.preventDefault();
+    var a=email("inEmail","inEmailBox","inEmailMsg"),b=pw("inPw","inPwBox","inPwMsg",false);
+    if(!a||!b){(a?$("inPw"):$("inEmail")).focus();return}
+    busy($("goIn"),"Sign in",function(){$("status").className="note ok";$("status").textContent="Preview only: sign-in would succeed here and open your desk."});
+  });
+  $("formUp").addEventListener("submit",function(e){e.preventDefault();
+    var a=email("upEmail","upEmailBox","upEmailMsg"),b=pw("upPw","upPwBox","upPwMsg",true);
+    if(!a||!b){(a?$("upPw"):$("upEmail")).focus();return}
+    busy($("goUp"),"Create account",function(){$("status").className="note ok";$("status").textContent="Preview only: your account would be created and you would land on the Home page."});
+  });
+  $("formForgot").addEventListener("submit",function(e){e.preventDefault();
+    if(!email("fgEmail","fgEmailBox","fgEmailMsg"))return;
+    busy($("goFg"),"Send reset link",function(){$("fgDone").hidden=false});
+  });
+  ["inEmail","inPw","upEmail","upPw","fgEmail"].forEach(function(id){$(id).addEventListener("input",function(){
+    var box=id+"Box";if($(box))$(box).classList.remove("err");var m=$(id+"Msg");if(m)m.textContent="";
+  })});
+  /* strength meter */
+  $("upPw").addEventListener("input",function(){
+    var v=this.value,s=0;if(v.length>=8)s++;if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;
+    var w=["","Weak","Fair","Good","Strong"];
+    document.querySelectorAll("#meter i").forEach(function(i,n){i.className=n<s?(s===4?"ok":"on"):""});
+    $("pwHint").textContent=v?("Strength: "+w[s]+(s<4?". Add length, capitals, numbers or a symbol.":". Nice.")):"Use 8 or more characters. Mix letters, numbers and a symbol for a stronger password.";
+  });
+})();
+</script>
+</body></html>

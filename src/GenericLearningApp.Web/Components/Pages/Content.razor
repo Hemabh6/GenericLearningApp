@@ -1,0 +1,23 @@
+@page "/s/{SubjectId:guid}/content"
+@attribute [Authorize]
+
+<PageTitle>Videos &amp; Content — Learning Desk</PageTitle>
+
+<SubjectPage SubjectId="SubjectId">
+    <div class="page">
+        <div class="sectionhead">
+            <div class="eyebrow">Videos &amp; Content</div>
+            <h2>Your watch and read list</h2>
+            <p class="muted">Sections nest as deeply as you like, every item keeps its own notes, and a CSV import fills the list in one go.</p>
+        </div>
+
+        <div class="empty">
+            <h3>Nothing here yet</h3>
+            <p class="muted">The content tree, per-item notes and CSV import arrive in slice 3.</p>
+        </div>
+    </div>
+</SubjectPage>
+
+@code {
+    [Parameter] public Guid SubjectId { get; set; }
+}

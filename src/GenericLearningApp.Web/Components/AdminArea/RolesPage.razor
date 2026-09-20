@@ -1,0 +1,251 @@
+@page "/admin/roles"
+@layout AdminLayout
+@attribute [Authorize]
+@inject AdminAccountService Accounts
+@inject SiteConfigStore Site
+
+<PageTitle>Roles &amp; permissions — Admin</PageTitle>
+
+@{
+    var canEdit = Shell.Actor.Has(AdminPermissions.Roles);
+    var role = SelectedRole;
+}
+
+<div class="ad-head">
+    <h1>Roles &amp; permissions</h1>
+    <p>Create the roles your site needs and decide what each can do in this admin area. Changes apply straight away.</p>
+</div>
+
+@if (!canEdit)
+{
+    <p class="ad-note">You can look at roles but not change them.</p>
+}
+
+<div class="ad-split">
+    <div class="ad-tl">
+        @foreach (var r in Shell.Roles)
+        {
+            var item = r;
+            <button class="ad-it" type="button" aria-current="@(item.Name == role.Name ? "true" : "false")"
+                    @onclick="() => _selected = item.Name">
+                <strong>@item.Name</strong>
+                <span class="ad-small ad-muted">@(item.BuiltIn ? "Built in" : "Custom") &middot; @item.Members @(item.Members == 1 ? "person" : "people")</span>
+            </button>
+        }
+
+        @if (canEdit)
+        {
+            <div class="ad-f ad-nr">
+                <label for="nrn">New role name</label>
+                <input class="ad-fx" id="nrn" placeholder="e.g. Head of department" maxlength="40" @bind="_newName" @bind:event="oninput" />
+                <label for="nrb">Start from</label>
+                <select class="ad-fx" id="nrb" @bind="_newFrom">
+                    @foreach (var source in Shell.Roles.Where(x => !AccountRules.IsAdmin(x.Name)))
+                    {
+                        <option value="@source.Name">@source.Name</option>
+                    }
+                </select>
+                <button class="ad-btn" type="button" @onclick="CreateAsync">Create role</button>
+                @if (_createError is not null) { <p class="ad-err" role="alert">@_createError</p> }
+            </div>
+        }
+    </div>
+
+    <div class="ad-sec" style="border:0;padding:0">
+        @{ var isAdmin = AccountRules.IsAdmin(role.Name); var locked = role.BuiltIn || !canEdit; }
+        <div class="ad-grid2">
+            <div class="ad-f">
+                <label for="rn">Role name</label>
+                <input class="ad-fx" id="rn" maxlength="40" value="@role.Name" disabled="@locked"
+                       @onchange="e => RenameAsync(role, e.Value?.ToString())" />
+            </div>
+            <div class="ad-f">
+                <label for="rd">Description</label>
+                <input class="ad-fx" id="rd" maxlength="200" value="@role.Description" disabled="@locked"
+                       @onchange="e => DescribeAsync(role, e.Value?.ToString())" />
+            </div>
+        </div>
+
+        @if (isAdmin)
+        {
+            <p class="ad-note">Admins can do everything. Their permissions are locked so someone can always manage the site.</p>
+        }
+
+        @foreach (var group in AdminPermissions.All.GroupBy(p => p.Group))
+        {
+            <div class="ad-pg">
+                <span class="eyebrow">@group.Key</span>
+                @foreach (var perm in group)
+                {
+                    var key = perm.Key;
+                    var on = isAdmin || role.Permissions.Contains(key);
+                    // You can switch a permission off, but only switch one on if you hold it yourself.
+                    var disabled = isAdmin || !canEdit || (!on && !Shell.Actor.Has(key));
+                    <div class="ad-row">
+                        <div class="ad-t">
+                            <span style="font-weight:600">@perm.Title</span>
+                            <span class="ad-small ad-muted">@perm.Description</span>
+                        </div>
+                        <input class="ad-sw" type="checkbox" role="switch" aria-label="@perm.Title"
+                               checked="@on" disabled="@disabled"
+                               @onchange="e => SetPermissionAsync(role, key, (bool)e.Value!)" />
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="ad-f">
+            <span class="ad-lab">Menus this role can open</span>
+            <div class="ad-chips">
+                @{ var opens = OpenMenus(role); }
+                @foreach (var m in opens) { <span class="ad-chip">@m.Name</span> }
+                @if (opens.Count == 0) { <span class="ad-small ad-muted">No menus.</span> }
+            </div>
+            <p class="ad-small ad-muted">Change who can open each menu on the Menus page (this list shows published menus).</p>
+        </div>
+
+        @if (!role.BuiltIn && canEdit)
+        {
+            <div>
+                @if (_confirmDelete == role.Name)
+                {
+                    <span class="ad-confirm">
+                        <span class="ad-small">Delete the role "@role.Name"?</span>
+                        <button class="ad-btn danger sm" type="button" @onclick="() => DeleteAsync(role)">Yes, delete</button>
+                        <button class="ad-btn ghost sm" type="button" @onclick="() => _confirmDelete = null">Cancel</button>
+                    </span>
+                }
+                else
+                {
+                    <button class="ad-btn danger" type="button" @onclick="() => _confirmDelete = role.Name">Delete this role</button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<section class="ad-sec">
+    <h2>Roles at a glance</h2>
+    <div class="ad-tw">
+        <table style="min-width:560px">
+            <thead>
+                <tr>
+                    <th>Permission</th>
+                    @foreach (var r in Shell.Roles) { <th>@r.Name</th> }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var perm in AdminPermissions.All)
+                {
+                    <tr>
+                        <td>@perm.Title</td>
+                        @foreach (var r in Shell.Roles)
+                        {
+                            <td>
+                                @if (AccountRules.IsAdmin(r.Name) || r.Permissions.Contains(perm.Key)) { <span class="ad-yes">Yes</span> }
+                                else { <span class="ad-muted">No</span> }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <p class="ad-small ad-muted">
+        The Learner role is what everyone without another role has. It uses the site and saves their own progress, and
+        holds no admin permissions.
+    </p>
+</section>
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    private string? _selected;
+    private string _newName = "";
+    private string _newFrom = BuiltInRoles.Learner;
+    private string? _createError;
+    private string? _confirmDelete;
+
+    private RoleRow SelectedRole
+        => Shell.Roles.FirstOrDefault(r => r.Name == _selected) ?? Shell.Roles.First();
+
+    private IReadOnlyList<MenuDto> OpenMenus(RoleRow role)
+    {
+        var viewer = new MenuViewer(true, string.Equals(role.Name, BuiltInRoles.Learner, StringComparison.OrdinalIgnoreCase) ? null : role.Name);
+        return Site.Current.Menus.Where(m => MenuAccessRules.IsAllowed(m, viewer)).ToList();
+    }
+
+    private async Task ReloadAsync()
+    {
+        Shell.Roles = await Accounts.ListRolesAsync(Shell.User);
+        Shell.Notify();
+    }
+
+    private async Task CreateAsync()
+    {
+        _createError = null;
+        try
+        {
+            var name = _newName.Trim();
+            await Accounts.CreateRoleAsync(Shell.User, name, _newFrom);
+            _newName = "";
+            await ReloadAsync();
+            _selected = name;
+            Shell.Toast($"Role \"{name}\" created. Set what it can do, then assign it to people.");
+        }
+        catch (AdminException ex)
+        {
+            _createError = ex.Message;
+        }
+    }
+
+    private async Task SetPermissionAsync(RoleRow role, string key, bool on)
+    {
+        try { await Accounts.SetPermissionAsync(Shell.User, role.Name, key, on); }
+        catch (AdminException ex) { Shell.Toast(ex.Message); }
+        await ReloadAsync();
+    }
+
+    private async Task RenameAsync(RoleRow role, string? newName)
+    {
+        try
+        {
+            var name = (newName ?? "").Trim();
+            await Accounts.RenameRoleAsync(Shell.User, role.Name, name);
+            Shell.RenameRoleInDraft(role.Name, name);
+            _selected = name;
+            Shell.Toast($"Renamed to \"{name}\".");
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task DescribeAsync(RoleRow role, string? text)
+    {
+        try { await Accounts.SetDescriptionAsync(Shell.User, role.Name, text); }
+        catch (AdminException ex) { Shell.Toast(ex.Message); }
+        await ReloadAsync();
+    }
+
+    private async Task DeleteAsync(RoleRow role)
+    {
+        _confirmDelete = null;
+        try
+        {
+            await Accounts.DeleteRoleAsync(Shell.User, role.Name);
+            Shell.RenameRoleInDraft(role.Name, null);
+            _selected = null;
+            Shell.Toast($"Deleted role \"{role.Name}\".");
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+
+        await ReloadAsync();
+    }
+}

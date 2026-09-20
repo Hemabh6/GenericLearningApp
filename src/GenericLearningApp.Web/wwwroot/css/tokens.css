@@ -1,0 +1,61 @@
+/* Bronze design system — tokens only. Never hard-code a hex value outside this file. */
+:root {
+  color-scheme: light;
+
+  --surface: #ffffff;
+  --surface-warm: #f4efe7;
+  --border: #ddd5c8;
+  --ink: #000000;
+  --ink-muted: #595959;
+  --bronze: #8f5a39;
+  --accent-text: #8f5a39;
+  --blue: #117aca;
+  --navy: #004b87;
+  --link: #004b87;
+  --on-accent: #ffffff;
+  --ok: #1f6f45;
+  --bad: #b3261e;
+  --field: #ffffff;
+
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 40px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #000000;
+    --surface-warm: #161412;
+    --border: #2e2a26;
+    --ink: #ffffff;
+    --ink-muted: #b5b5b5;
+    --accent-text: #c8956f;
+    --link: #117aca;
+    --ok: #4cc38a;
+    --bad: #ff8a80;
+    --field: #0d0c0b;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #000000;
+  --surface-warm: #161412;
+  --border: #2e2a26;
+  --ink: #ffffff;
+  --ink-muted: #b5b5b5;
+  --accent-text: #c8956f;
+  --link: #117aca;
+  --ok: #4cc38a;
+  --bad: #ff8a80;
+  --field: #0d0c0b;
+}
