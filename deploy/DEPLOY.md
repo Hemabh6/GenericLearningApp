@@ -43,9 +43,11 @@ commit"**, not "Squash" or "Rebase". Squashing rewrites the commits, so the next
 changes again and fights itself.
 
 **Each environment has its own server, its own database and its own `.env`.** Staging must never share a
-database or a super-admin password with production. Oracle's Always Free allowance covers up to 4 OCPUs
-and 24 GB of memory in total, so two of the 2-OCPU / 12 GB machines from Part 1 fit: one for staging, one
-for production. Give each its own reserved IP and its own domain name (for example
+database or a super-admin password with production. Oracle's Always Free ARM allowance is **2 OCPUs and
+12 GB of memory in total** (per Oracle's documentation; it was 4 and 24 until June 2026, so check the
+current numbers), which fits two machines of **1 OCPU / 6 GB**: one for staging, one for production. That is
+enough for this app; the first Docker build is just slower. If you want production on firmer ground, a small
+paid server for production and the free one for staging is a sensible split. Give each its own reserved IP and its own domain name (for example
 `staging.yourdomain.com` and `learn.yourdomain.com`). In each site's **Admin → Site settings**, put the
 environment in the name ("Learning Desk (staging)") so nobody mistakes one for the other.
 
@@ -78,7 +80,8 @@ Branch protection is free on public repositories. On a private repository it nee
    A card is needed for identity checks; Always Free resources aren't billed.
 2. **Compute → Instances → Create instance**
    - Image: **Canonical Ubuntu 24.04** (choose the *aarch64* build for the Ampere shape).
-   - Shape: **Ampere → VM.Standard.A1.Flex**, **2 OCPU, 12 GB** (inside the free allowance).
+   - Shape: **Ampere → VM.Standard.A1.Flex**, **1 OCPU, 6 GB** for each of two servers. Oracle's free
+     allowance is 2 OCPUs and 12 GB *in total*; going above it is billed (or refused on a free-only account).
    - Networking: keep "Assign a public IPv4 address".
    - SSH keys: let Oracle generate a pair and **download the private key**, or paste your own public key.
    - If it says *"Out of capacity"*, that's common for the free A1 shape: try again later or another
