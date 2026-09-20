@@ -1,13 +1,22 @@
-name: build
+name: CI
 
+# main = development, stg = staging, master = production.
+# Every push to those branches, and every pull request into them, is built and tested, so a change
+# is checked at each step of main -> stg -> master.
 on:
   push:
-    branches: [main]
+    branches: [main, stg, master]
   pull_request:
-    branches: [main]
+    branches: [main, stg, master]
+  workflow_dispatch:
+
+# A newer push to the same branch makes an older, still-running check pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +28,11 @@ jobs:
       - run: dotnet restore
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release --verbosity normal
+
+  # Builds the production image exactly as the server will. This is the check that catches a broken
+  # Dockerfile (for example a publish that leaves out blazor.web.js) before it reaches a server.
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag learning-desk:ci .

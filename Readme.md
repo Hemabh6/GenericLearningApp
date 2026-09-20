@@ -77,6 +77,18 @@ long-lived cookie. Its data is stored like anyone else's, but the cookie is the 
 clear it and that guest's data is unreachable. Guest rows (`UserName` starting `guest-`) are not
 cleaned up automatically yet.
 
+## Branches
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Development. Feature branches are merged here by pull request. |
+| `stg` | Staging. Promoted from `main` by pull request; deployed to the staging server. |
+| `master` | Production. Promoted from `stg` by pull request; deployed to the production server. |
+
+Changes move `feature/*` → `main` → `stg` → `master`, one pull request at a time, merged with a merge
+commit (not squash). CI builds, tests and builds the Docker image on all three. Details, and how each
+server follows its branch, are in [deploy/DEPLOY.md](deploy/DEPLOY.md#branches-and-environments).
+
 ## Tests
 
 ```bash

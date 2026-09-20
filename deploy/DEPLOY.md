@@ -12,6 +12,65 @@ menus change, so where a step is in Oracle's website, follow the intent if a but
 
 ---
 
+## Branches and environments
+
+Three long-lived branches, each with one job:
+
+| Branch | Environment | Where it runs | Who/what changes it |
+| --- | --- | --- | --- |
+| `main` | **Development**: the newest work | Your own computer (`dotnet run`, `compose.dev.yaml`) | Feature branches, via pull request |
+| `stg` | **Staging**: a rehearsal of production | A separate server | Pull request from `main` |
+| `master` | **Production**: the real site people use | Its own server | Pull request from `stg` |
+
+```text
+feature/my-change ──PR──▶ main ──PR──▶ stg ──PR──▶ master
+                          (dev)       (staging)    (production)
+```
+
+### Day to day
+
+1. `git switch main && git pull`, then `git switch -c feature/short-name`. Do the work, push, open a pull
+   request **into `main`**. CI builds, tests and builds the Docker image; merge when it's green.
+2. To try it on staging, open a pull request **`main` → `stg`**, merge, then deploy staging (below).
+   Click through the real thing there: sign-in, the admin area, a backup and restore.
+3. When staging looks right, open a pull request **`stg` → `master`**, merge, then deploy production.
+
+Code only ever moves forward, one step at a time. Never commit straight to `stg` or `master`, and never
+skip staging. A hotfix for production is the same path, just quick.
+
+**One rule that keeps the branches in step:** merge those promotion pull requests with **"Create a merge
+commit"**, not "Squash" or "Rebase". Squashing rewrites the commits, so the next promotion shows the same
+changes again and fights itself.
+
+**Each environment has its own server, its own database and its own `.env`.** Staging must never share a
+database or a super-admin password with production. Oracle's Always Free allowance covers up to 4 OCPUs
+and 24 GB of memory in total, so two of the 2-OCPU / 12 GB machines from Part 1 fit: one for staging, one
+for production. Give each its own reserved IP and its own domain name (for example
+`staging.yourdomain.com` and `learn.yourdomain.com`). In each site's **Admin → Site settings**, put the
+environment in the name ("Learning Desk (staging)") so nobody mistakes one for the other.
+
+**Deploying** is the same command on each server, and each server tracks only its own branch:
+
+| Server | Clone it once with | Deploy an update with |
+| --- | --- | --- |
+| Staging | `git clone --branch stg <repo-url>` | `git pull && docker compose up -d --build` |
+| Production | `git clone --branch master <repo-url>` | `git pull && docker compose up -d --build` |
+
+(If you ever want a shared development server, it's the same recipe with `--branch main`.)
+
+**Protect `stg` and `master` on GitHub** so a slip can't bypass this. *Repo → Settings → Branches → Add
+branch ruleset* (or *Add rule*), once for `master` and once for `stg`:
+
+- Require a pull request before merging.
+- Require status checks to pass: choose **`build-test`** and **`docker-image`** (they appear in the list
+  after CI has run once).
+- Block force pushes and deletion.
+- Optionally add `main` with just the status-check rule.
+
+Branch protection is free on public repositories. On a private repository it needs a paid GitHub plan.
+
+---
+
 ## Part 1. Create the server (Oracle Cloud Always Free)
 
 1. Sign up at cloud.oracle.com. Pick a **home region close to your users** (Mumbai or Hyderabad
@@ -78,7 +137,8 @@ name already points at the server and ports 80 and 443 are open**. Do parts 1 to
 ## Part 4. Deploy
 
 ```bash
-git clone https://github.com/YOUR-USER/GenericLearningApp.git
+# Production server: clone the master branch.  Staging server: use --branch stg instead.
+git clone --branch master https://github.com/YOUR-USER/GenericLearningApp.git
 cd GenericLearningApp
 cp .env.example .env
 nano .env
@@ -123,14 +183,18 @@ full container rebuild keeps you signed in with your data intact.
 
 ### Updating later
 
+Only after the change has passed through the branches above (merged into `stg`, tried on staging, then
+merged into `master`):
+
 ```bash
 cd GenericLearningApp
-git pull
+git pull                    # the server follows its own branch: stg or master
 docker compose up -d --build
 ```
 
 Database changes apply by themselves on start, and people stay signed in. Before an update that
-changes the database, take a manual backup (part 5) first.
+changes the database, take a manual backup (part 5) first. Do it on staging before production, so the
+first time a database change runs isn't on the real data.
 
 ### If something doesn't work
 
