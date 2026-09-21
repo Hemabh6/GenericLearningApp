@@ -29,7 +29,7 @@ links straight to the confirmation.
 
 Point `ConnectionStrings:DefaultConnection` in
 `src/GenericLearningApp.Web/appsettings.Development.json` at any PostgreSQL you have,
-then run steps 2 and 3.
+then run step 2.
 
 ### Admin area and the super admin
 
