@@ -139,11 +139,21 @@ Docker Desktop "start when you sign in" setting.
 ## 7. Backups to another disk or a cloud-synced folder
 
 The app already writes a database dump every night into a Docker volume, which lives on the **same SSD** as the
-database. `deploy\backup-to-folder.ps1` copies the dumps to a folder on the hard disk. If one drive dies, the other
-still has your data. ✔ Tested on Windows PowerShell 5.1 with fake dumps, including paths with spaces, cleanup and re-runs.
+database. `deploy\backup-to-folder.ps1` copies the dumps to a folder you choose, so one drive dying can't take the
+backups with it. ✔ Tested on Windows PowerShell 5.1 with fake dumps, including paths with spaces, cleanup and re-runs.
 
-First find the hard disk's drive letter (it's the ~931 GB one): `powershell -NoProfile -Command "Get-Volume"`.
-Say it's `D:`. Try it by hand:
+**Where to copy them, best first:**
+
+1. **A folder that OneDrive or Google Drive syncs** (for example a `gla-backups` folder inside your OneDrive folder).
+   The dumps are tiny, so a free plan is plenty, and this also survives theft, fire and a power surge, which no disk
+   inside the laptop does. The dumps hold everything in the app, including password hashes: use a cloud account with
+   two-step verification.
+2. **A USB stick or external drive,** kept unplugged when not copying.
+3. **The second internal disk, only if CrystalDiskInfo says Good.** A disk marked **Caution** can lose your backups at
+   exactly the wrong moment, so don't use it as your only copy.
+
+Choose your destination from the list above and use it in place of the example `D:\gla-backups` below (find drive
+letters with `powershell -NoProfile -Command "Get-Volume"`). Try it by hand:
 
 ```
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\gla\deploy\backup-to-folder.ps1 -Destination D:\gla-backups
