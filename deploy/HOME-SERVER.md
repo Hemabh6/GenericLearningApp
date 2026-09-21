@@ -29,7 +29,7 @@ running today without one.
 | Memory | Task Manager → Performance → Memory | 8 GB is enough. 16 GB is comfortable. |
 | Which disk is which | `powershell -NoProfile -Command "Get-PhysicalDisk \| Format-Table FriendlyName,MediaType,Size"` | Note which is the `SSD` and which is the `HDD` |
 | Free space on the SSD | `powershell -NoProfile -Command "Get-Volume \| Format-Table DriveLetter,FileSystemLabel,Size,SizeRemaining"` | At least **40 GB free** on the drive Windows uses (usually `C:`) |
-| Drive health | Install **CrystalDiskInfo** (free) and look for "Good" | Both drives should say **Good**. If either says Caution or Bad, replace it before trusting it with data. |
+| Drive health | Install **CrystalDiskInfo** (free) and look for "Good" | Both drives should say **Good**. A **Caution** or **Bad** drive must not hold the database, and shouldn't be your only backup either (see section 7). Open the yellow rows in the attribute list: *Current Pending Sector* or *Uncorrectable Sector* above zero means it is failing now. |
 
 **About Windows 10:** as far as Microsoft has announced, free security updates for Windows 10 ended in
 October 2025, and Windows 11 officially needs a newer processor than a 5th-generation Intel Core. If your
@@ -136,7 +136,7 @@ should start, and `http://localhost` should work again. The containers restart t
 is already set), so this is only about Windows and Docker starting. If it doesn't work, check auto sign-in and the
 Docker Desktop "start when you sign in" setting.
 
-## 7. Backups to the hard disk
+## 7. Backups to another disk or a cloud-synced folder
 
 The app already writes a database dump every night into a Docker volume, which lives on the **same SSD** as the
 database. `deploy\backup-to-folder.ps1` copies the dumps to a folder on the hard disk. If one drive dies, the other
