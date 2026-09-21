@@ -113,6 +113,9 @@ That brings up the app, PostgreSQL, Caddy (TLS) and a nightly `pg_dump` kept for
 **Full walkthrough, from creating the server to off-site backups and disaster recovery:
 [deploy/DEPLOY.md](deploy/DEPLOY.md).**
 
+No cloud account? A spare Windows laptop can run it with Docker Desktop:
+[deploy/HOME-SERVER.md](deploy/HOME-SERVER.md).
+
 ## Layout
 
 | Project | Holds |
