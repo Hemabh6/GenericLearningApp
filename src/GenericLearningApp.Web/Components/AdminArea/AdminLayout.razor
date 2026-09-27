@@ -1,0 +1,206 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AdminAccountService Accounts
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject SiteConfigStore Site
+@inject IJSRuntime Js
+
+@* The admin area (design/learning-desk-admin.html): top bar with Publish / Discard, a section menu,
+   and whichever admin page is open. Pages never trust the menu: every service call re-checks permission. *@
+@if (_shell is null)
+{
+    <p class="muted" style="padding-block:var(--space-4)">@(_denied ? "You don't have access to the admin area." : "Loading…")</p>
+}
+else
+{
+    <div class="ad">
+        <header class="ad-bar">
+            <div class="ad-bar-in">
+                <button class="ad-menubtn" type="button" aria-label="Open admin menu" aria-expanded="@_navOpen.ToString().ToLowerInvariant()"
+                        @onclick="() => _navOpen = true"><span></span><span></span><span></span></button>
+                <a class="ad-brand" href="">@Site.Current.Settings.Name</a><span class="ad-badge">Admin</span>
+                <span class="ad-sp"></span>
+                @if (_shell.Actor.Has(AdminPermissions.Menus))
+                {
+                    <span class="ad-pill @(_dirty ? "dirty" : "ok")">@(_dirty ? "Unpublished changes" : "All changes published")</span>
+                    <button class="ad-btn ghost sm ad-discard" type="button" disabled="@(!_dirty)" @onclick="DiscardAsync">Discard</button>
+                    <button class="ad-btn sm" type="button" disabled="@(!_dirty || _publishing)" @onclick="PublishAsync">Publish</button>
+                }
+                <button class="ad-theme" type="button" @onclick="ToggleTheme" aria-label="Toggle light or dark theme">Theme</button>
+            </div>
+        </header>
+
+        @if (_navOpen)
+        {
+            <div class="ad-scrim" @onclick="CloseNav"></div>
+        }
+
+        <div class="ad-app" @onkeydown="OnKey">
+            <nav class="ad-side @(_navOpen ? "open" : "")" aria-label="Admin sections">
+                <div class="ad-side-head"><span class="ad-brand">Admin</span>
+                    <button type="button" aria-label="Close menu" @onclick="CloseNav">&times;</button></div>
+
+                @if (_shell.Actor.Has(AdminPermissions.Menus))
+                {
+                    <NavLink href="admin/site" @onclick="CloseNav">Site settings</NavLink>
+                    <NavLink href="admin/menus" @onclick="CloseNav">Menus &amp; pages <span class="ad-ct">@_shell.Menus.Count</span></NavLink>
+                }
+                @if (_shell.Actor.Has(AdminPermissions.People))
+                {
+                    <NavLink href="admin/people" @onclick="CloseNav">People &amp; access <span class="ad-ct">@_shell.PeopleCount</span></NavLink>
+                }
+                <NavLink href="admin/roles" @onclick="CloseNav">Roles &amp; permissions <span class="ad-ct">@_shell.Roles.Count</span></NavLink>
+                @if (_shell.Actor.Has(AdminPermissions.Menus))
+                {
+                    <NavLink href="admin/config" @onclick="CloseNav">Config (JSON)</NavLink>
+                }
+            </nav>
+
+            <main class="ad-view">
+                <CascadingValue Value="_shell">
+                    @Body
+                </CascadingValue>
+            </main>
+        </div>
+
+        @if (_shell.ToastMessage is not null)
+        {
+            <div class="ad-toast" role="status">
+                <span>@_shell.ToastMessage</span>
+                @if (_shell.ToastUndo is not null)
+                {
+                    <button type="button" @onclick="UndoAsync">Undo</button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private AdminShell? _shell;
+    private bool _denied;
+    private bool _navOpen;
+    private bool _dirty;
+    private bool _lastDirtySent;
+    private bool _publishing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var actor = await Accounts.GetActorAsync(user);
+
+        // Being signed in isn't enough: the area opens only for someone holding an admin permission.
+        if (actor is null || !actor.AnyPermission)
+        {
+            _denied = true;
+            return;
+        }
+
+        var shell = new AdminShell { Actor = actor, User = user };
+
+        if (actor.Has(AdminPermissions.Menus))
+        {
+            var (settings, menus) = await Accounts.LoadSiteAsync(user);
+            shell.LoadDraft(settings, menus);
+        }
+
+        shell.Roles = await Accounts.ListRolesAsync(user);
+        shell.PeopleCount = (await Accounts.GetCountsAsync(user)).People;
+
+        shell.Changed += OnShellChanged;
+        _shell = shell;
+    }
+
+    private void OnShellChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            _dirty = _shell?.Dirty == true;
+            StateHasChanged();
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shell is null) return;
+
+        var dirty = _shell.Dirty;
+        if (dirty != _dirty) { _dirty = dirty; StateHasChanged(); }
+
+        // Ask the browser to warn before the tab closes with unpublished edits.
+        if (dirty != _lastDirtySent)
+        {
+            _lastDirtySent = dirty;
+            try { await Js.InvokeVoidAsync("glaAdminDirty", dirty); } catch (InvalidOperationException) { } catch (JSDisconnectedException) { }
+        }
+    }
+
+    private async Task PublishAsync()
+    {
+        if (_shell is null) return;
+
+        var problems = _shell.Problems();
+        if (problems.Count > 0)
+        {
+            _shell.Toast($"Can't publish yet: {problems[0]}" + (problems.Count > 1 ? $" (+{problems.Count - 1} more)" : ""));
+            return;
+        }
+
+        _publishing = true;
+        try
+        {
+            await Accounts.PublishSiteAsync(_shell.User, _shell.ToSettings(), _shell.ToMenus());
+
+            // Read it back so the draft matches what was really stored (for example a cleared landing page).
+            var (settings, menus) = await Accounts.LoadSiteAsync(_shell.User);
+            _shell.LoadDraft(settings, menus);
+            _shell.Toast("Published. The site now uses these settings.");
+        }
+        catch (AdminException ex)
+        {
+            _shell.Toast(ex.Message);
+        }
+        finally
+        {
+            _publishing = false;
+            _dirty = _shell.Dirty;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        if (_shell is null) return;
+
+        var before = _shell.Snapshot();
+        var (settings, menus) = await Accounts.LoadSiteAsync(_shell.User);
+        _shell.LoadDraft(settings, menus);
+        _shell.Toast("Discarded unpublished changes.", () =>
+        {
+            _shell.Restore(before);
+            _shell.Notify();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task UndoAsync()
+    {
+        if (_shell?.ToastUndo is not { } undo) return;
+        _shell.ClearToast();
+        await undo();
+    }
+
+    private void CloseNav() => _navOpen = false;
+
+    private void OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") _navOpen = false;
+    }
+
+    private async Task ToggleTheme() => await Js.InvokeVoidAsync("glaToggleTheme");
+
+    public void Dispose()
+    {
+        if (_shell is not null) _shell.Changed -= OnShellChanged;
+    }
+}

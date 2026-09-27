@@ -1,0 +1,22 @@
+# OPTIONAL. Reach the site from the internet through a Cloudflare Tunnel instead of opening ports on your router.
+# Useful at home, where the ISP often blocks inbound ports or changes your IP. The tunnel makes an OUTGOING
+# connection to Cloudflare, and visitors come in through it, so nothing on your router is exposed.
+#
+# You need a domain name managed in Cloudflare, and a tunnel created in the Cloudflare dashboard
+# (Zero Trust > Networks > Tunnels > Create a tunnel > Cloudflared). In the tunnel's "Public hostname" tab, point
+# your hostname at the service  http://app:8080  and copy the tunnel token into .env as CLOUDFLARE_TUNNEL_TOKEN.
+#
+# Start it WITHOUT Caddy (Cloudflare provides the HTTPS, and Caddy would only fight for ports 80/443):
+#   docker compose -f compose.yaml -f compose.tunnel.yaml up -d --build db app backup tunnel
+#
+# NOT TESTED against a real Cloudflare account. The compose file itself is checked for validity.
+services:
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      app:
+        condition: service_healthy

@@ -1,0 +1,97 @@
+@page "/"
+@inject ISubjectService Subjects
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject SiteConfigStore Site
+
+<PageTitle>@Site.Current.Settings.Name</PageTitle>
+
+<div class="page">
+    <div class="band">
+        <div class="wrap">
+            <div class="eyebrow">A workspace for one subject at a time</div>
+            <h1>Learn it, plan it, test it, in one place.</h1>
+            <p class="lede">@Site.Current.Settings.Tagline</p>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="row">
+                        <a class="btn" href="subjects">My subjects</a>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="row">
+                        <a class="btn" href="Account/Register">Create an account</a>
+                        <a class="btn ghost" href="Account/Login">Sign in</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="sectionhead">
+                <h2>Pick up where you left off</h2>
+                <p class="muted">Your subjects, each with its own notes, plan and tests.</p>
+            </div>
+
+            @if (_subjects is null)
+            {
+                <p class="muted">Loading…</p>
+            }
+            else if (_subjects.Count == 0)
+            {
+                <div class="empty">
+                    <h3>No subjects yet</h3>
+                    <p class="muted">Create your first one and the rest of the app opens up.</p>
+                    <div class="row"><a class="btn" href="subjects">Add a subject</a></div>
+                </div>
+            }
+            else
+            {
+                <div class="cards">
+                    @foreach (var subject in _subjects)
+                    {
+                        <a class="card" href="@($"s/{subject.Id}")">
+                            <h3>@subject.Name</h3>
+                            <p class="muted small">Started @subject.CreatedAt.ToLocalTime().ToString("d MMM yyyy")</p>
+                            <span class="go">Open</span>
+                        </a>
+                    }
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="sectionhead">
+                <h2>How it works</h2>
+            </div>
+            <ol class="lede" style="padding-left:20px">
+                <li>Create a subject for whatever you are studying.</li>
+                <li>Build a plan with phases and milestones so you know what comes next.</li>
+                <li>Write a note after each session and add hard terms to your reference table.</li>
+                <li>Take a test, then revisit the notes behind the questions you missed.</li>
+            </ol>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private IReadOnlyList<SubjectListItem>? _subjects;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // An admin can make another menu the front door; "/" then forwards there.
+        var landing = Site.Current.Menus.FirstOrDefault(m => m.Id == Site.Current.Settings.LandingMenuId);
+        if (landing is not null && landing.Page != Domain.Enums.MenuPage.Home)
+        {
+            Nav.NavigateTo(landing.Href, forceLoad: landing.IsExternal);
+            return;
+        }
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated != true) return;
+
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        _subjects = await Subjects.ListAsync(userId);
+    }
+}

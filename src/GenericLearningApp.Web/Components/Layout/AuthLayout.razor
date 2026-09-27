@@ -1,0 +1,50 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject SiteConfigStore Site
+
+@* Sign-in, registration and password reset share this split screen (design/learning-desk-login.html). *@
+<div class="sp">
+    <aside class="sp-side">
+        <a class="sp-brand" href="">@Site.Current.Settings.Name</a>
+        <h1>Pick up exactly where you left off.</h1>
+        <p class="sp-lede">
+            Your videos, notes, roadmap and test scores stay together and follow you from your laptop to your phone.
+        </p>
+        <div class="sp-peek" aria-label="Example progress">
+            <span class="eyebrow">Example of what you'll see</span>
+            <div class="sp-peek-row"><span>Linear algebra videos</span><span class="sp-tag">9 of 16 watched</span><div class="sp-bar"><i style="width:56%"></i></div></div>
+            <div class="sp-peek-row"><span>Phase 2: Build a small GPT</span><span class="sp-tag">Week 3 of 8</span><div class="sp-bar"><i style="width:38%"></i></div></div>
+            <div class="sp-peek-row"><span>Tests: latest score</span><span class="sp-tag">7 / 10</span><div class="sp-bar"><i style="width:70%"></i></div></div>
+        </div>
+    </aside>
+
+    <main class="sp-main">
+        <div class="sp-top">
+            <span class="eyebrow">@Heading</span>
+            <button class="sp-theme" type="button" data-theme-toggle
+                    aria-label="Toggle light or dark theme">Theme</button>
+        </div>
+        <div class="sp-panel">
+            @Body
+        </div>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private string Heading
+    {
+        get
+        {
+            var path = Nav.ToBaseRelativePath(Nav.Uri);
+            if (path.StartsWith("Account/Register", StringComparison.OrdinalIgnoreCase)) return "Create account";
+            if (path.StartsWith("Account/ForgotPassword", StringComparison.OrdinalIgnoreCase)) return "Reset password";
+            return "Sign in";
+        }
+    }
+}

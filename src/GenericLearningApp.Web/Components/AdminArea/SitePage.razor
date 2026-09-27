@@ -1,0 +1,83 @@
+@page "/admin/site"
+@layout AdminLayout
+@attribute [Authorize]
+
+<PageTitle>Site settings — Admin</PageTitle>
+
+@if (!Shell.Actor.Has(AdminPermissions.Menus))
+{
+    <NoAccess />
+}
+else
+{
+    <div class="ad-head">
+        <h1>Site settings</h1>
+        <p>Basics that apply to the whole website. Nothing goes live until you press Publish.</p>
+    </div>
+
+    <section class="ad-sec">
+        <div class="ad-grid2">
+            <div class="ad-f">
+                <label for="sn">Site name</label>
+                <input class="ad-fx" id="sn" maxlength="@Domain.Entities.SiteSettings.NameMaxLength"
+                       @bind="Shell.Site.Name" @bind:event="oninput" @bind:after="Shell.Notify" />
+            </div>
+            <div class="ad-f">
+                <label for="sl">Landing page</label>
+                <select class="ad-fx" id="sl" value="@(Shell.Site.Landing?.ToString() ?? "")" @onchange="OnLanding">
+                    <option value="">Home (default)</option>
+                    @foreach (var menu in Shell.Menus.Where(m => m.IsVisible && m.Page != MenuPage.Home))
+                    {
+                        <option value="@menu.Id">@(string.IsNullOrWhiteSpace(menu.Name) ? "Untitled" : menu.Name)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="ad-f">
+            <label for="st">Tagline</label>
+            <input class="ad-fx" id="st" maxlength="@Domain.Entities.SiteSettings.TaglineMaxLength"
+                   @bind="Shell.Site.Tagline" @bind:event="oninput" @bind:after="Shell.Notify" />
+            <span class="ad-small ad-muted">Shown under the headline on the Home page.</span>
+        </div>
+    </section>
+
+    <section class="ad-sec">
+        <h2>Who can get in</h2>
+        <div>
+            <div class="ad-row">
+                <div class="ad-t">
+                    <span style="font-weight:600">Require sign-in</span>
+                    <span class="ad-small ad-muted">Turn on to make every page private: visitors must sign in, or continue as a guest, first. Off leaves the Home and FAQ pages public.</span>
+                </div>
+                <input class="ad-sw" type="checkbox" role="switch" aria-label="Require sign-in"
+                       @bind="Shell.Site.RequireSignIn" @bind:after="Shell.Notify" />
+            </div>
+            <div class="ad-row">
+                <div class="ad-t">
+                    <span style="font-weight:600">Allow guests</span>
+                    <span class="ad-small ad-muted">Shows "Try it as a guest" on the sign-in page. A guest gets a temporary account whose progress stays on that device.</span>
+                </div>
+                <input class="ad-sw" type="checkbox" role="switch" aria-label="Allow guests"
+                       @bind="Shell.Site.AllowGuests" @bind:after="Shell.Notify" />
+            </div>
+            <div class="ad-row">
+                <div class="ad-t">
+                    <span style="font-weight:600">Let people create their own account</span>
+                    <span class="ad-small ad-muted">Turn off to make the site invite-only. Admins add people on the People page.</span>
+                </div>
+                <input class="ad-sw" type="checkbox" role="switch" aria-label="Let people create their own account"
+                       @bind="Shell.Site.AllowSignUp" @bind:after="Shell.Notify" />
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    private void OnLanding(ChangeEventArgs e)
+    {
+        Shell.Site.Landing = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        Shell.Notify();
+    }
+}

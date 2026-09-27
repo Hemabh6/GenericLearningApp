@@ -1,0 +1,158 @@
+﻿@page "/Account/Login"
+@layout GenericLearningApp.Web.Components.Layout.AuthLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using GenericLearningApp.Web.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Sign in — Learning Desk</PageTitle>
+
+<AuthTabs Register="false" ReturnUrl="@ReturnUrl" />
+
+<StatusMessage Message="@errorMessage" />
+
+<EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="sp-form">
+    <DataAnnotationsValidator />
+
+    <div class="sp-head">
+        <h2>Welcome back</h2>
+        <p class="muted">Sign in to load your saved progress.</p>
+    </div>
+
+    <div class="sp-field">
+        <label for="Input.Email">Email</label>
+        <div class="sp-in">
+            <InputText @bind-Value="Input.Email" id="Input.Email"
+                       autocomplete="username webauthn" aria-required="true" placeholder="you@example.com" />
+        </div>
+        <ValidationMessage For="() => Input.Email" class="sp-msg" />
+    </div>
+
+    <div class="sp-field">
+        <label for="Input.Password">Password</label>
+        <div class="sp-in">
+            <InputText type="password" @bind-Value="Input.Password" id="Input.Password"
+                       autocomplete="current-password" aria-required="true" placeholder="Your password" />
+            <button type="button" data-show="Input.Password" aria-label="Show password">Show</button>
+        </div>
+        <ValidationMessage For="() => Input.Password" class="sp-msg" />
+    </div>
+
+    <div class="sp-line">
+        <label class="sp-chk">
+            <InputCheckbox @bind-Value="Input.RememberMe" />
+            Keep me signed in
+        </label>
+        <a class="sp-link" href="Account/ForgotPassword">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="sp-btn">Sign in</button>
+    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email"
+                   class="sp-btn ghost">Use a passkey</PasskeySubmit>
+</EditForm>
+
+@* Outside the EditForm: these are forms of their own and forms cannot nest. *@
+<div class="sp-alt">
+    <ExternalLoginPicker />
+    <GuestSignIn />
+    <p class="sp-fine"><a href="Account/ResendEmailConfirmation">Resend email confirmation</a></p>
+</div>
+
+@code {
+    private string? errorMessage;
+    private EditContext editContext = default!;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        editContext = new EditContext(Input);
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+        {
+            errorMessage = $"Error: {Input.Passkey.Error}";
+            return;
+        }
+
+        SignInResult result;
+        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
+        {
+            // When performing passkey sign-in, don't perform form validation.
+            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
+        }
+        else
+        {
+            // If doing a password sign-in, validate the form.
+            if (!editContext.Validate())
+            {
+                return;
+            }
+
+            // This doesn't count login failures towards account lockout
+            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        }
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Enter your email address.")]
+        [EmailAddress(ErrorMessage = "That email looks incomplete. Check for a missing @ or domain, like name@example.com.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Enter your password.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        // Checked by default, as in the design.
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; } = true;
+
+        public PasskeyInputModel? Passkey { get; set; }
+    }
+}

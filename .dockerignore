@@ -1,0 +1,14 @@
+# Keep the build context clean. Windows-restored obj/ folders in particular break the
+# Linux restore inside the image (their asset files point at C:\ package folders).
+**/bin/
+**/obj/
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+.env
+design/
+tests/**/TestResults/
+TestResults/
+*.md

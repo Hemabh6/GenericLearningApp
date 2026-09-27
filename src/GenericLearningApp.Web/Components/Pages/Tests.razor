@@ -1,0 +1,23 @@
+@page "/s/{SubjectId:guid}/tests"
+@attribute [Authorize]
+
+<PageTitle>Tests — Learning Desk</PageTitle>
+
+<SubjectPage SubjectId="SubjectId">
+    <div class="page">
+        <div class="sectionhead">
+            <div class="eyebrow">Tests</div>
+            <h2>Check what you know</h2>
+            <p class="muted">Answer each question, then submit to see explanations and add the attempt to your score history.</p>
+        </div>
+
+        <div class="empty">
+            <h3>Nothing here yet</h3>
+            <p class="muted">Question sets, server-side scoring and score history arrive in slice 5.</p>
+        </div>
+    </div>
+</SubjectPage>
+
+@code {
+    [Parameter] public Guid SubjectId { get; set; }
+}

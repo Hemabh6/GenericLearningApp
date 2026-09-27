@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# Local configuration and data
+.env
+appsettings.*.local.json
+src/GenericLearningApp.Web/Data/*.db
+src/GenericLearningApp.Web/Data/*.db-*
+
+# Build output
+artifacts/
+publish/
+TestResults/

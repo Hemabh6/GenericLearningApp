@@ -1,0 +1,901 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>[hidden]{display:none!important}body{margin:0}</style><title>Learning Desk Admin</title>
+<style>
+:root{
+  --surface:#ffffff;--surface-warm:#f4efe7;--border:#ddd5c8;--field:#ffffff;
+  --ink:#000000;--ink-muted:#595959;
+  --bronze:#8f5a39;--accent-text:#8f5a39;--blue:#117aca;--navy:#004b87;--link:#004b87;--on-accent:#ffffff;
+  --ok:#1f6f45;--bad:#b3261e;--warn:#8a5a00;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r-sm:4px;--r-md:8px;--s1:8px;--s2:16px;--s3:24px;--s4:40px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#000;--surface-warm:#161412;--border:#2e2a26;--field:#0d0c0b;--ink:#fff;--ink-muted:#b5b5b5;
+  --accent-text:#c8956f;--link:#117aca;--ok:#4cc38a;--bad:#ff8a80;--warn:#e0b04a}}
+:root[data-theme="dark"]{
+  --surface:#000;--surface-warm:#161412;--border:#2e2a26;--field:#0d0c0b;--ink:#fff;--ink-muted:#b5b5b5;
+  --accent-text:#c8956f;--link:#117aca;--ok:#4cc38a;--bad:#ff8a80;--warn:#e0b04a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:15px/22px var(--sans);padding-inline:var(--s2)}
+h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance}
+h1{font-size:30px;line-height:36px}h2{font-size:22px;line-height:28px}h3{font-size:17px;line-height:24px}
+p{margin:0}a{color:var(--link)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+.muted{color:var(--ink-muted)}.small{font-size:13px;line-height:18px}
+.eyebrow{font-size:12px;line-height:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);border-bottom:1px solid var(--border);margin-inline:calc(var(--s2) * -1);padding-inline:var(--s2)}
+.bar .in{max-width:1180px;margin-inline:auto;display:flex;align-items:center;gap:12px;min-height:56px}
+.brand{font-family:var(--serif);font-size:20px;white-space:nowrap}
+.badge{font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--bronze);color:var(--accent-text);border-radius:var(--r-sm);padding:1px 6px}
+.sp{flex:1}
+#menuBtn{display:none;flex-direction:column;justify-content:center;gap:4px;width:44px;height:44px;margin-left:-10px;background:none;border:0;padding:0 10px;cursor:pointer}
+#menuBtn span{display:block;height:2px;background:var(--ink);border-radius:1px}
+.pill{font-size:12px;border-radius:99px;padding:2px 10px;border:1px solid var(--border);color:var(--ink-muted);white-space:nowrap}
+.pill.dirty{border-color:var(--warn);color:var(--warn)}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--bronze);background:var(--bronze);color:var(--on-accent);border-radius:var(--r-md);padding:8px 16px;min-height:40px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--ink-muted);font-weight:500}
+.btn.ghost:hover:not(:disabled){border-color:var(--ink)}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.btn.danger{background:none;color:var(--bad);border-color:var(--bad);font-weight:500}
+#themeBtn{background:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 10px;cursor:pointer;font-size:13px;color:var(--ink-muted);min-height:32px}
+
+/* layout */
+.app{max-width:1180px;margin-inline:auto;display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s4);padding-block:var(--s3) var(--s4)}
+#side{display:flex;flex-direction:column;gap:2px;position:sticky;top:76px;align-self:start}
+#side .dh{display:none}
+#side button[data-v]{text-align:left;background:none;border:0;border-left:3px solid transparent;padding:10px 14px;cursor:pointer;color:var(--ink-muted);font-size:15px;min-height:44px;display:flex;justify-content:space-between;gap:8px}
+#side button[data-v]:hover{color:var(--ink)}
+#side button[aria-current="page"]{color:var(--ink);border-left-color:var(--bronze);background:var(--surface-warm);font-weight:600}
+#side .ct{font-size:12px;color:var(--ink-muted);font-weight:400}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20}
+#view{display:flex;flex-direction:column;gap:var(--s3);min-width:0}
+.head{display:flex;flex-direction:column;gap:4px}
+.head p{max-width:64ch;color:var(--ink-muted)}
+.sec{display:flex;flex-direction:column;gap:var(--s2)}
+.sec+.sec{border-top:1px solid var(--border);padding-top:var(--s3)}
+.band{background:var(--surface-warm);border-radius:var(--r-md);padding:var(--s2)}
+
+/* forms */
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.f>label,.lab{font-size:13px;font-weight:600}
+.fx{border:1px solid var(--ink-muted);border-radius:var(--r-md);background:var(--field);padding:9px 12px;min-height:42px;width:100%;min-width:0}
+.fx:focus-visible{outline-offset:1px}
+textarea.fx{resize:vertical;min-height:64px}
+select.fx{padding-right:8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s2)}
+.sw{appearance:none;-webkit-appearance:none;width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;flex:none;margin:0;border:1px solid var(--ink-muted)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--ink-muted);transition:transform .15s}
+.sw:checked{background:var(--bronze);border-color:var(--bronze)}
+.sw:checked::after{transform:translateX(18px);background:#fff}
+.row{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:0}
+.row .t{display:flex;flex-direction:column;min-width:0}
+
+/* menu rows */
+.mrow{display:grid;grid-template-columns:auto minmax(120px,1.3fr) minmax(130px,1fr) minmax(130px,1fr) auto auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:var(--r-md)}
+.mrow.off{background:var(--surface-warm)}
+.mrow .mv{display:flex;flex-direction:column;gap:2px}
+.ib{width:32px;height:28px;border:1px solid var(--border);background:none;border-radius:var(--r-sm);cursor:pointer;color:var(--ink-muted);line-height:1}
+.ib:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}.ib:disabled{opacity:.35;cursor:default}
+.tg{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.tg label{font-size:13px;font-weight:600}
+.mlist{display:flex;flex-direction:column;gap:var(--s1)}
+.url{grid-column:2/-1}
+
+/* preview */
+.pv{display:flex;flex-direction:column;gap:12px}
+.pvbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:0 12px;display:flex;gap:2px;overflow-x:auto;align-items:center;min-height:46px}
+.pvbar b{font-family:var(--serif);font-weight:400;margin-right:12px;white-space:nowrap}
+.pvbar span{padding:12px 10px 10px;border-bottom:2px solid transparent;white-space:nowrap;color:var(--ink-muted);font-size:14px}
+.pvbar span:first-of-type{border-bottom-color:var(--bronze);color:var(--ink);font-weight:600}
+.pvph{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.phone{width:170px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);padding:6px 0;font-size:13px}
+.phone div{padding:7px 12px}.phone div:first-child{border-left:3px solid var(--bronze);background:var(--surface-warm);font-weight:600;padding-left:9px}
+.empty{color:var(--ink-muted);font-size:13px;padding:8px 12px}
+
+/* tests */
+.split{display:grid;grid-template-columns:230px minmax(0,1fr);gap:var(--s3);align-items:start}
+.tl{display:flex;flex-direction:column;gap:6px}
+.tl button.it{text-align:left;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:44px}
+.tl button.it[aria-current="true"]{border-color:var(--bronze);background:var(--surface-warm)}
+.qc{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s2);display:flex;flex-direction:column;gap:12px}
+.qh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.opt{display:flex;align-items:center;gap:10px}
+.opt input[type=radio]{width:20px;height:20px;accent-color:var(--bronze);margin:0;flex:none}
+.opt .fx{min-height:38px;padding:6px 10px}
+
+/* people */
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-md)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.sel td{background:var(--surface-warm)}
+.who{display:flex;flex-direction:column}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--border);color:var(--ink-muted)}
+.chip.c{border-color:var(--bronze);color:var(--accent-text)}
+.chip.p{border-color:var(--warn);color:var(--warn)}
+.acc{display:grid;grid-template-columns:minmax(0,1fr) 160px 90px;gap:8px 12px;align-items:center}
+.acc>.h{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
+.yes{color:var(--ok);font-weight:600}.no{color:var(--bad);font-weight:600}
+.inv{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+pre{margin:0;font:12px/18px var(--mono);background:var(--surface-warm);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s2);overflow:auto;max-height:520px}
+.err{color:var(--bad);font-size:13px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--surface);border-radius:var(--r-md);padding:10px 14px;display:flex;gap:14px;align-items:center;max-width:calc(100vw - 32px);font-size:14px}
+#toast button{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font-weight:600;padding:4px}
+
+.imp .steps{margin:0;padding-left:20px;color:var(--ink-muted);font-size:14px}
+.imp .steps li{padding:1px 0}
+.imp .acts,.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.imp textarea{font:12px/18px var(--mono);min-height:120px;white-space:pre}
+.imp .sum{font-size:14px}
+.imp .pt{max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-md)}
+.imp table{min-width:480px}
+.imp td,.imp th{padding:7px 12px;font-size:13px}
+.imp .fixme{color:var(--bad)}
+.imp .good{color:var(--ok)}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.filebtn:focus-within{outline:2px solid var(--link);outline-offset:2px}
+.nudge{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;background:var(--surface-warm);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 16px}
+.tourlink{margin-top:var(--s2);background:none;border:0;border-left:3px solid transparent;text-align:left;padding:10px 14px;min-height:44px;cursor:pointer;color:var(--accent-text);font-size:14px;font-weight:600}
+#tourLayer{position:fixed;inset:0;z-index:50}
+#tourHole{position:fixed;border-radius:8px;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--bronze),0 0 0 9999px rgba(0,0,0,.62);pointer-events:none;transition:left .2s,top .2s,width .2s,height .2s}
+#tourCard{position:fixed;width:340px;max-width:calc(100vw - 24px);background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:6px}
+#tourCard .acts{margin-top:12px}
+.rolesel{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px}
+.rolesel .lab{flex-basis:100%}
+.cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:400;cursor:pointer;min-height:32px}
+.cb input{width:18px;height:18px;accent-color:var(--bronze);margin:0}
+.cbs{display:flex;flex-wrap:wrap;gap:4px 18px}
+.pg{display:flex;flex-direction:column}
+.pg .row select{width:270px;max-width:100%;min-height:38px;flex:none}
+.row{flex-wrap:wrap}
+.eff{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px 16px;font-size:14px}
+.eff>span:nth-child(odd){color:var(--ink-muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip.x{display:inline-flex;align-items:center;gap:4px;padding:2px 4px 2px 10px}
+.chip.x button{background:none;border:0;cursor:pointer;color:var(--ink-muted);font-size:16px;line-height:1;padding:2px 6px}
+.addrow{display:flex;gap:8px}
+.nr{margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--border)}
+#glance{min-width:560px}
+#glance td,#glance th{font-size:13px;padding:8px 12px}
+@media (max-width:960px){
+  .app{grid-template-columns:1fr;gap:0}
+  #menuBtn{display:inline-flex}
+  #side{position:fixed;top:0;left:0;bottom:0;width:min(280px,84vw);z-index:21;background:var(--surface);border-right:1px solid var(--border);padding:0 0 var(--s3);transform:translateX(-102%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;overflow-y:auto}
+  #side.open{transform:none;visibility:visible;transition:transform .22s ease}
+  #side .dh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);margin-bottom:8px}
+  #navClose{background:none;border:0;font-size:28px;width:44px;height:44px;cursor:pointer;color:var(--ink-muted)}
+  #side button[data-v]{min-height:48px}
+  body.navopen{overflow:hidden}
+}
+@media (max-width:760px){
+  h1{font-size:26px;line-height:32px}
+  .mrow{grid-template-columns:auto minmax(0,1fr) auto;align-items:start}
+  .mrow .f.nm{grid-column:2/3}
+  .mrow .mv{grid-row:span 2}
+  .mrow .f.ty,.mrow .f.vi{grid-column:2/-1}
+  .mrow .tg,.mrow .del{grid-column:2/-1}
+  .url{grid-column:2/-1}
+  .split{grid-template-columns:1fr}
+  .inv{grid-template-columns:1fr}
+  #discard,#statePill,.badge{display:none}
+  .bar .in{gap:8px}
+  .brand{font-size:18px}
+  .acc{grid-template-columns:minmax(0,1fr) 130px 64px}
+}
+@media (pointer:coarse){.ib{width:40px;height:36px}.sw{width:48px;height:28px}.sw::after{width:22px;height:22px}.sw:checked::after{transform:translateX(20px)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+
+<header class="bar"><div class="in">
+  <button id="menuBtn" type="button" aria-label="Open admin menu" aria-controls="side" aria-expanded="false"><span></span><span></span><span></span></button>
+  <span class="brand">Learning Desk</span><span class="badge">Admin</span>
+  <span class="sp"></span>
+  <span class="pill" id="statePill">All changes published</span>
+  <button class="btn ghost sm" id="discard" type="button" disabled>Discard</button>
+  <button class="btn sm" id="publish" type="button" disabled>Publish</button>
+  <button id="themeBtn" type="button" aria-label="Toggle light or dark theme">Theme</button>
+</div></header>
+<div id="scrim" hidden></div>
+
+<div class="app">
+  <nav id="side" aria-label="Admin sections">
+    <div class="dh"><span class="brand">Admin</span><button id="navClose" type="button" aria-label="Close menu">&times;</button></div>
+    <button data-v="site">Site settings</button>
+    <button data-v="menus">Menus &amp; pages <span class="ct" id="ctMenus"></span></button>
+    <button data-v="tests">Tests <span class="ct" id="ctTests"></span></button>
+    <button data-v="people">People &amp; access <span class="ct" id="ctPeople"></span></button>
+    <button data-v="roles">Roles &amp; permissions <span class="ct" id="ctRoles"></span></button>
+    <button data-v="config">Config (JSON)</button>
+    <button class="tourlink" type="button" data-tour="overview">Take the admin tour</button>
+  </nav>
+  <main id="view"></main>
+</div>
+<div id="toast" role="status" hidden></div>
+<div id="tourLayer" hidden>
+  <div id="tourHole"></div>
+  <div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourT">
+    <div class="eyebrow" id="tourN"></div>
+    <h3 id="tourT"></h3>
+    <p id="tourP" class="small"></p>
+    <div class="acts"><button class="btn ghost sm" id="tourBack" type="button">Back</button><button class="btn sm" id="tourNext" type="button">Next</button><button class="btn ghost sm" id="tourSkip" type="button">Skip tour</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function uid(){return Math.random().toString(36).slice(2,8)}
+  var KEY="learningdesk.admin.v1";
+  var TYPES=[["home","Home"],["videos","Videos & content"],["notes","Notes & reference"],["roadmap","Timeline & roadmap"],["tests","Tests"],["faq","FAQ"],["attendance","Attendance"],["results","Test results"],["custom","Custom page"],["link","External link"]];
+  var ACCESS=[["everyone","Everyone (incl. guests)"],["signed","Signed-in users"],["roles","Only chosen roles"]];
+  var RES=[["none","No results"],["own","Their own only"],["subjects","Students in their subjects"],["classes","Students in their classes"],["all","Everyone's results"]];
+  var ATT=[["none","No attendance"],["own","Their own only"],["classes","Students in their classes"],["all","Everyone's attendance"]];
+  var SHORT={none:"None",own:"Own only",subjects:"Their subjects",classes:"Their classes",all:"Everyone"};
+  var PERMS=[
+    {k:"menus",g:"Website",t:"Change menus and site settings",d:"Add, rename, hide and reorder menus.",type:"bool"},
+    {k:"content",g:"Content",t:"Edit videos, notes and pages",d:"Add and change learning content.",type:"bool"},
+    {k:"tests",g:"Content",t:"Create and edit tests",d:"Write tests and questions.",type:"bool"},
+    {k:"results",g:"Student data",t:"See test results",d:"Whose scores this role can open.",type:"scope",o:RES},
+    {k:"attendance",g:"Student data",t:"See attendance",d:"Whose attendance this role can open.",type:"scope",o:ATT},
+    {k:"mark",g:"Student data",t:"Mark attendance",d:"Record who was present.",type:"bool"},
+    {k:"export",g:"Student data",t:"Download reports",d:"Export results and attendance.",type:"bool"},
+    {k:"people",g:"People",t:"Invite people and change their roles",d:"Manage the people list.",type:"bool"},
+    {k:"roles",g:"People",t:"Create and edit roles",d:"Change what each role can do.",type:"bool"}
+  ];
+  function P(o){var b={menus:false,content:false,tests:false,results:"none",attendance:"none",mark:false,export:false,people:false,roles:false},k;for(k in o)b[k]=o[k];return b}
+  function defRoles(){return[
+    {id:"admin",name:"Admin",desc:"Manages everything. This can't be changed.",builtin:true,perms:P({menus:true,content:true,tests:true,results:"all",attendance:"all",mark:true,export:true,people:true,roles:true})},
+    {id:"editor",name:"Editor",desc:"Changes content and tests.",builtin:true,perms:P({content:true,tests:true,results:"all"})},
+    {id:"learner",name:"Learner",desc:"Uses the site and saves their own progress.",builtin:true,perms:P({results:"own",attendance:"own"})},
+    {id:"viewer",name:"Viewer",desc:"Can read but not save progress.",builtin:true,perms:P({})}
+  ]}
+  function seed(){return{
+    site:{name:"Learning Desk",tagline:"Videos, notes, roadmap and tests in one place.",landing:"m1",signin:true,guest:true,signup:true},
+    roles:defRoles().concat([
+      {id:"r_teacher",name:"Teacher",desc:"Teaches one or more subjects. Sees results for those subjects only.",perms:P({content:true,tests:true,results:"subjects"})},
+      {id:"r_ct",name:"Class teacher",desc:"Looks after a class. Sees its attendance and results and can mark attendance.",perms:P({content:true,tests:true,results:"classes",attendance:"classes",mark:true,export:true})}
+    ]),
+    subjects:["Maths","Science","English"],classes:["6A","6B","7A"],
+    menus:[
+      {id:"m1",name:"Home",type:"home",access:"everyone",roles:[],visible:true},
+      {id:"m2",name:"Videos & Content",type:"videos",access:"everyone",roles:[],visible:true},
+      {id:"m3",name:"Notes & Reference",type:"notes",access:"signed",roles:[],visible:true},
+      {id:"m4",name:"Timeline & Roadmap",type:"roadmap",access:"signed",roles:[],visible:true},
+      {id:"m5",name:"Tests",type:"tests",access:"signed",roles:[],visible:true},
+      {id:"m8",name:"Results",type:"results",access:"roles",roles:["editor","r_teacher","r_ct"],visible:true},
+      {id:"m9",name:"Attendance",type:"attendance",access:"roles",roles:["r_ct"],visible:true},
+      {id:"m6",name:"FAQ",type:"faq",access:"everyone",roles:[],visible:true},
+      {id:"m7",name:"Mentor notes",type:"custom",access:"roles",roles:["editor"],visible:false}
+    ],
+    tests:[
+      {id:"t1",title:"Linear algebra basics",menu:"m5",mins:15,pass:60,qs:[
+        {id:"q1",q:"What does the determinant of a 2D matrix tell you about the transformation?",opts:[{t:"How much areas are scaled",c:true},{t:"The rotation angle",c:false},{t:"The number of eigenvectors",c:false}]},
+        {id:"q2",q:"A matrix with determinant zero...",opts:[{t:"squishes space into a lower dimension",c:true},{t:"is always the identity",c:false}]}]},
+      {id:"t2",title:"Transformer architecture",menu:"m5",mins:20,pass:70,qs:[
+        {id:"q3",q:"What does self-attention compute for each token?",opts:[{t:"A weighted mix of value vectors of all tokens",c:true},{t:"The next token directly",c:false},{t:"A convolution over neighbours",c:false}]}]}
+    ],
+    people:[
+      {id:"p1",name:"Aditya (you)",email:"aditya@example.com",role:"admin",status:"Active",last:"Today",ov:{},subjects:[],classes:[]},
+      {id:"p2",name:"Meera Rao",email:"meera@example.com",role:"r_teacher",status:"Active",last:"Yesterday",ov:{},subjects:["Maths"],classes:[]},
+      {id:"p5",name:"Farah Ali",email:"farah@example.com",role:"r_ct",status:"Active",last:"Today",ov:{},subjects:["Science"],classes:["6A"]},
+      {id:"p3",name:"Dev Patel",email:"dev@example.com",role:"learner",status:"Active",last:"3 days ago",ov:{m7:"allow",m5:"block"},subjects:[],classes:["6A"]},
+      {id:"p4",name:"Jonas Weber",email:"jonas@example.com",role:"viewer",status:"Invited",last:"Not yet",ov:{},subjects:[],classes:[]}
+    ]}}
+  function migrate(s){
+    var oldRole={Admin:"admin",Editor:"editor",Learner:"learner",Viewer:"viewer"};
+    if(!s.roles)s.roles=defRoles();if(!s.subjects)s.subjects=[];if(!s.classes)s.classes=[];
+    s.menus.forEach(function(m){if(m.access===undefined){var n=m.min;m.access=n===0?"everyone":(n==null||n===1)?"signed":"roles";m.roles=n===3?["editor"]:[];delete m.min}if(!m.roles)m.roles=[]});
+    s.people.forEach(function(p){if(oldRole[p.role])p.role=oldRole[p.role];if(!p.subjects)p.subjects=[];if(!p.classes)p.classes=[];if(!p.ov)p.ov={}});
+    return s;
+  }
+  var S,BASE,view="menus",selTest="t1",selPerson="p3",selRole="r_teacher",pvAs="guest",undo=null,toastT;
+  try{var raw=localStorage.getItem(KEY);if(raw){S=JSON.parse(raw)}}catch(e){}
+  if(!S||!S.menus)S=seed();
+  migrate(S);
+  BASE=JSON.stringify(S);
+  try{var th=localStorage.getItem("ld.theme");if(th)document.documentElement.setAttribute("data-theme",th)}catch(e){}
+
+  /* access */
+  function person(id){return S.people.filter(function(p){return p.id===id})[0]}
+  function menu(id){return S.menus.filter(function(m){return m.id===id})[0]}
+  function role(id){return S.roles.filter(function(r){return r.id===id})[0]}
+  function roleName(id){return (role(id)||{name:id}).name}
+  function pv(p,k){var r=role(p&&p.role);if(!r)return false;if(r.id==="admin")return PERMS.filter(function(x){return x.k===k})[0].type==="bool"?true:"all";return r.perms[k]}
+  function roleOpens(r,m){return m.access!=="roles"||r.id==="admin"||m.roles.indexOf(r.id)>=0}
+  function allowed(p,m){
+    if(!p)return m.access==="everyone";
+    var o=p.ov&&p.ov[m.id];if(o==="allow")return true;if(o==="block")return false;
+    if(m.access!=="roles")return true;
+    return p.role==="admin"||m.roles.indexOf(p.role)>=0;
+  }
+  function viewer(){return pvAs==="guest"?null:person(pvAs)}
+  function typeName(t){return (TYPES.filter(function(x){return x[0]===t})[0]||[0,t])[1]}
+  function plural(n,a,b){return n+" "+(n===1?a:(b||a+"s"))}
+
+  /* dirty + status */
+  function dirty(){return JSON.stringify(S)!==BASE}
+  function refreshBar(){
+    var d=dirty();
+    $("publish").disabled=!d;$("discard").disabled=!d;
+    var p=$("statePill");p.textContent=d?"Unpublished changes":"All changes published";p.className="pill "+(d?"dirty":"ok");
+    $("ctMenus").textContent=S.menus.length;$("ctTests").textContent=S.tests.length;$("ctPeople").textContent=S.people.length;$("ctRoles").textContent=S.roles.length;
+  }
+  function refreshPreview(){
+    var box=$("pvBox");if(!box)return;
+    var v=viewer(),ms=S.menus.filter(function(m){return m.visible&&allowed(v,m)});
+    box.innerHTML=ms.length?
+      '<div class="pvbar" aria-label="Desktop preview"><b>'+esc(S.site.name)+'</b>'+ms.map(function(m){return"<span>"+esc(m.name||"Untitled")+"</span>"}).join("")+'</div>'+
+      '<div class="pvph"><div class="phone" aria-label="Phone preview">'+ms.map(function(m){return"<div>"+esc(m.name||"Untitled")+"</div>"}).join("")+'</div><p class="small muted" style="flex:1;min-width:180px">'+ms.length+' of '+S.menus.length+' menus shown to '+(v?esc(v.name):"a guest")+'. On phones the tab bar becomes this drawer.</p></div>':
+      '<p class="empty">This person would see no menus.</p>';
+  }
+  function jsonCfg(){return JSON.stringify({site:S.site,roles:S.roles.map(function(r){return{id:r.id,name:r.name,description:r.desc||"",permissions:r.perms}}),subjects:S.subjects,classes:S.classes,menus:S.menus.map(function(m){return{id:m.id,name:m.name,type:m.type,visible:m.visible,access:m.access,roles:m.access==="roles"?m.roles:undefined,url:m.url||undefined}}),tests:S.tests.map(function(t){return{id:t.id,title:t.title,menu:t.menu,minutes:t.mins,passPercent:t.pass,questions:t.qs.map(function(q){return{text:q.q,options:q.opts.map(function(o){return{text:o.t,correct:!!o.c}})}})}}),people:S.people.map(function(p){return{name:p.name,email:p.email,role:p.role,subjects:p.subjects,classes:p.classes,overrides:p.ov}})},null,2)}
+
+  /* views */
+  function opts(list,cur){return list.map(function(x){return'<option value="'+esc(x[0])+'"'+(String(x[0])===String(cur)?" selected":"")+">"+esc(x[1])+"</option>"}).join("")}
+  var V={};
+  V.site=function(){var s=S.site;
+    return'<div class="head"><h1>Site settings</h1><p>Basics that apply to the whole website.</p></div>'+
+    '<section class="sec"><div class="grid2"><div class="f"><label for="sn">Site name</label><input class="fx" id="sn" data-k="site" data-p="name" value="'+esc(s.name)+'"></div>'+
+    '<div class="f"><label for="sl">Landing page</label><select class="fx" id="sl" data-k="site" data-p="landing">'+opts(S.menus.filter(function(m){return m.visible}).map(function(m){return[m.id,m.name]}),s.landing)+'</select></div></div>'+
+    '<div class="f"><label for="st">Tagline</label><input class="fx" id="st" data-k="site" data-p="tagline" value="'+esc(s.tagline)+'"></div></section>'+
+    '<section class="sec"><h2>Who can get in</h2><div>'+
+    sw("Require sign-in","Turn off to make the whole site public.","signin",s.signin)+
+    sw("Allow guests","Guests can browse pages set to Everyone and keep progress on their own device.","guest",s.guest)+
+    sw("Let people create their own account","Turn off to make the site invite-only.","signup",s.signup)+'</div></section>'};
+  function sw(t,d,p,on){return'<div class="row"><div class="t"><span style="font-weight:600">'+t+'</span><span class="small muted">'+d+'</span></div><input class="sw" type="checkbox" role="switch" aria-label="'+esc(t)+'" data-k="site" data-p="'+p+'"'+(on?" checked":"")+'></div>'}
+
+  V.menus=function(){
+    var pOpts='<option value="guest"'+(pvAs==="guest"?" selected":"")+'>Guest (not signed in)</option>'+S.people.map(function(p){return'<option value="'+p.id+'"'+(pvAs===p.id?" selected":"")+">"+esc(p.name)+" ("+esc(roleName(p.role))+")</option>"}).join("");
+    var rows=S.menus.map(function(m,i){
+      return'<div class="mrow'+(m.visible?"":" off")+'" data-id="'+m.id+'">'+
+      '<div class="mv"><button class="ib" data-act="up" data-id="'+m.id+'" aria-label="Move '+esc(m.name)+' up"'+(i?"":" disabled")+'>&uarr;</button><button class="ib" data-act="down" data-id="'+m.id+'" aria-label="Move '+esc(m.name)+' down"'+(i===S.menus.length-1?" disabled":"")+'>&darr;</button></div>'+
+      '<div class="f nm"><label for="mn'+m.id+'">Menu name</label><input class="fx" id="mn'+m.id+'" data-k="menu" data-id="'+m.id+'" data-p="name" value="'+esc(m.name)+'"></div>'+
+      '<div class="f ty"><label for="mt'+m.id+'">Page type</label><select class="fx" id="mt'+m.id+'" data-k="menu" data-id="'+m.id+'" data-p="type">'+opts(TYPES,m.type)+'</select></div>'+
+      '<div class="f vi"><label for="mv'+m.id+'">Who can see it</label><select class="fx" id="mv'+m.id+'" data-k="menu" data-id="'+m.id+'" data-p="access">'+opts(ACCESS,m.access)+'</select></div>'+
+      '<div class="tg"><label for="ms'+m.id+'">Shown</label><input class="sw" id="ms'+m.id+'" type="checkbox" role="switch" data-k="menu" data-id="'+m.id+'" data-p="visible"'+(m.visible?" checked":"")+'></div>'+
+      '<button class="btn danger sm del" data-act="delmenu" data-id="'+m.id+'" aria-label="Delete '+esc(m.name)+'">Delete</button>'+
+      (m.access==="roles"?'<div class="rolesel"><span class="lab">Roles that can open it <span class="muted" style="font-weight:400">(admins always can)</span></span>'+S.roles.filter(function(r){return r.id!=="admin"}).map(function(r){return'<label class="cb"><input type="checkbox" data-k="mrole" data-id="'+m.id+'" data-r="'+esc(r.id)+'"'+(m.roles.indexOf(r.id)>=0?" checked":"")+"> "+esc(r.name)+"</label>"}).join("")+"</div>":"")+
+      (m.type==="link"?'<div class="f url"><label for="mu'+m.id+'">Link address</label><input class="fx" id="mu'+m.id+'" data-k="menu" data-id="'+m.id+'" data-p="url" placeholder="https://" value="'+esc(m.url||"")+'"></div>':"")+
+      '</div>'}).join("");
+    return'<div class="head"><h1>Menus &amp; pages</h1><p>Choose which menus the site has, what they are called, their order, and who sees them.</p></div>'+
+    '<section class="sec"><div class="mlist">'+rows+'</div><div><button class="btn ghost" data-act="addmenu" type="button">Add a menu</button></div></section>'+impPanel("menus")+
+    '<section class="sec"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><h2>Preview</h2><div class="f" style="min-width:220px"><label for="pvas">Preview as</label><select class="fx" id="pvas" data-k="pv">'+pOpts+'</select></div></div><div class="pv band" id="pvBox"></div></section>'};
+
+  V.tests=function(){
+    var t=S.tests.filter(function(x){return x.id===selTest})[0]||S.tests[0];if(t)selTest=t.id;
+    var list=S.tests.map(function(x){return'<button class="it" data-act="seltest" data-id="'+x.id+'" aria-current="'+(x.id===selTest)+'"><strong>'+esc(x.title||"Untitled test")+'</strong><span class="small muted">'+x.qs.length+" question"+(x.qs.length===1?"":"s")+" &middot; "+x.mins+" min</span></button>"}).join("");
+    var ed="";
+    if(t){
+      var tm=S.menus.filter(function(m){return m.type==="tests"}).map(function(m){return[m.id,m.name]});
+      ed='<div class="grid2"><div class="f"><label for="tt">Test title</label><input class="fx" id="tt" data-k="test" data-p="title" value="'+esc(t.title)+'"></div>'+
+      '<div class="f"><label for="tmn">Appears under menu</label><select class="fx" id="tmn" data-k="test" data-p="menu">'+(tm.length?opts(tm,t.menu):'<option value="">No Tests menu yet</option>')+'</select></div>'+
+      '<div class="f"><label for="tmi">Time limit (minutes)</label><input class="fx" id="tmi" type="number" min="0" data-k="test" data-p="mins" value="'+t.mins+'"></div>'+
+      '<div class="f"><label for="tps">Pass mark (%)</label><input class="fx" id="tps" type="number" min="0" max="100" data-k="test" data-p="pass" value="'+t.pass+'"></div></div>'+
+      '<h3>Questions</h3>'+t.qs.map(function(q,qi){return'<div class="qc"><div class="qh"><span class="eyebrow">Question '+(qi+1)+'</span><button class="btn danger sm" data-act="delq" data-id="'+q.id+'">Delete</button></div>'+
+        '<div class="f"><label for="q'+q.id+'">Question</label><textarea class="fx" id="q'+q.id+'" data-k="q" data-id="'+q.id+'" data-p="q">'+esc(q.q)+'</textarea></div>'+
+        '<div class="f"><span class="lab">Answers (select the correct one)</span>'+q.opts.map(function(o,oi){return'<div class="opt"><input type="radio" name="c'+q.id+'" aria-label="Mark answer '+(oi+1)+' correct" data-act="correct" data-id="'+q.id+'" data-o="'+oi+'"'+(o.c?" checked":"")+'><input class="fx" data-k="opt" data-id="'+q.id+'" data-o="'+oi+'" aria-label="Answer '+(oi+1)+'" value="'+esc(o.t)+'"><button class="ib" data-act="delopt" data-id="'+q.id+'" data-o="'+oi+'" aria-label="Remove answer '+(oi+1)+'">&times;</button></div>'}).join("")+'</div>'+
+        '<div><button class="btn ghost sm" data-act="addopt" data-id="'+q.id+'">Add an answer</button></div></div>'}).join("")+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-act="addq">Add a question</button><button class="btn danger" data-act="deltest">Delete this test</button></div>';
+    }else ed='<p class="muted">No tests yet. Add your first test to start.</p>';
+    return'<div class="head"><h1>Tests</h1><p>Create tests, write questions and set the pass mark. Each test appears under a menu of the type Tests.</p></div>'+
+    '<div class="split"><div class="tl">'+list+'<button class="btn ghost" data-act="addtest">New test</button></div><div class="sec" style="border:0;padding:0">'+ed+'</div></div>'+impPanel("tests")};
+
+  function permText(p,x){var v=pv(p,x.k);
+    if(x.type==="bool")return{t:v?"Yes":"No",ok:!!v};
+    var lab=(x.o.filter(function(o){return o[0]===v})[0]||[0,"None"])[1],extra="";
+    if(v==="subjects")extra=p.subjects.length?" ("+p.subjects.join(", ")+")":" (no subjects assigned yet)";
+    if(v==="classes")extra=p.classes.length?" ("+p.classes.join(", ")+")":" (no classes assigned yet)";
+    return{t:lab+extra,ok:v!=="none"&&!(extra.indexOf("no ")>0)}}
+  function roleOpts(cur,skipAdmin){return S.roles.filter(function(r){return!(skipAdmin&&r.id==="admin")}).map(function(r){return'<option value="'+esc(r.id)+'"'+(r.id===cur?" selected":"")+">"+esc(r.name)+"</option>"}).join("")}
+  function checks(list,have,k,id,g){return list.length?list.map(function(n){return'<label class="cb"><input type="checkbox" data-k="'+k+'" data-id="'+esc(id)+'" data-g="'+g+'" data-n="'+esc(n)+'"'+(have.indexOf(n)>=0?" checked":"")+"> "+esc(n)+"</label>"}).join(""):'<span class="small muted">None defined yet. Add them under Roles &amp; permissions.</span>'}
+
+  V.people=function(){
+    var rows=S.people.map(function(p){var n=Object.keys(p.ov||{}).length;
+      return'<tr'+(p.id===selPerson?' class="sel"':"")+'><td><div class="who"><strong>'+esc(p.name)+'</strong><span class="small muted">'+esc(p.email)+'</span></div></td>'+
+      '<td><select class="fx" style="min-height:36px;padding:4px 8px" aria-label="Role for '+esc(p.name)+'" data-k="person" data-id="'+p.id+'" data-p="role">'+roleOpts(p.role)+'</select></td>'+
+      '<td>'+(p.status==="Invited"?'<span class="chip p">Invited</span>':'<span class="small muted">'+esc(p.last)+"</span>")+(n?' <span class="chip c">'+n+' custom</span>':"")+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn ghost sm" data-act="selperson" data-id="'+p.id+'">Details</button> <button class="btn danger sm" data-act="delperson" data-id="'+p.id+'" aria-label="Remove '+esc(p.name)+'">Remove</button></td></tr>'}).join("");
+    var p=person(selPerson),det="";
+    if(p){
+      var eff='<div class="eff">'+PERMS.map(function(x){var r=permText(p,x);return'<span>'+esc(x.t)+'</span><span class="'+(r.ok?"yes":"no")+'">'+esc(r.t)+"</span>"}).join("")+"</div>";
+      var asg=p.role==="admin"?'<p class="small muted">Admins can see everything, so subjects and classes don\'t apply.</p>':
+        '<div class="f"><span class="lab">Subjects '+esc(p.name)+' teaches</span><div class="cbs">'+checks(S.subjects,p.subjects,"assign",p.id,"subjects")+'</div></div><div class="f"><span class="lab">Classes '+esc(p.name)+' looks after</span><div class="cbs">'+checks(S.classes,p.classes,"assign",p.id,"classes")+'</div></div>';
+      var acc='<div class="acc"><span class="h">Menu</span><span class="h">Access</span><span class="h">Result</span>'+S.menus.map(function(m){
+        var o=p.ov[m.id]||"default",ok=allowed(p,m);
+        return'<span>'+esc(m.name)+(m.visible?"":' <span class="chip">hidden</span>')+'</span><select class="fx" style="min-height:36px;padding:4px 8px" aria-label="Access to '+esc(m.name)+' for '+esc(p.name)+'" data-k="ov" data-id="'+m.id+'"><option value="default"'+(o==="default"?" selected":"")+'>Role default</option><option value="allow"'+(o==="allow"?" selected":"")+'>Always allow</option><option value="block"'+(o==="block"?" selected":"")+'>Block</option></select><span class="'+(ok?"yes":"no")+'">'+(ok?"Can open":"No access")+'</span>'}).join("")+'</div>';
+      det='<section class="sec" id="assign"><h2>Assignments for '+esc(p.name)+'</h2><p class="small muted">Role: '+esc(roleName(p.role))+'. Roles that see results or attendance for "their subjects" or "their classes" use these lists.</p>'+asg+'</section>'+
+        '<section class="sec" id="effective"><h2>What '+esc(p.name)+' can do</h2><p class="small muted">The result of the role plus the assignments above.</p>'+eff+'</section>'+
+        '<section class="sec"><h2>Page access for '+esc(p.name)+'</h2><p class="small muted">Each menu starts from its "Who can see it" setting and the role. Change a row to override it for this person only.</p>'+acc+'</section>';
+    }
+    return'<div class="head"><h1>People &amp; access</h1><p>Invite people, give each a role, assign their subjects and classes, then fine-tune which menus a particular person can open.</p></div>'+
+    '<section class="sec"><h2>Invite someone</h2><div class="inv"><div class="f"><label for="ie">Email</label><input class="fx" id="ie" type="email" placeholder="name@example.com"></div><div class="f"><label for="ir">Role</label><select class="fx" id="ir">'+roleOpts("learner",true)+'</select></div><button class="btn" data-act="invite">Send invite</button></div><p class="err" id="inverr" role="alert"></p></section>'+
+    '<section class="sec"><h2>People</h2><div class="tw"><table><thead><tr><th>Person</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<p class="small muted">Roles are defined under Roles &amp; permissions, where you can add your own, such as Teacher or Class teacher.</p></section>'+
+    impPanel("people")+det};
+
+  V.roles=function(){
+    var r=role(selRole)||S.roles[0];selRole=r.id;var isAdmin=r.id==="admin";
+    var list=S.roles.map(function(x){var n=S.people.filter(function(p){return p.role===x.id}).length;
+      return'<button class="it" data-act="selrole" data-id="'+esc(x.id)+'" aria-current="'+(x.id===selRole)+'"><strong>'+esc(x.name||"Untitled role")+'</strong><span class="small muted">'+(x.builtin?"Built in":"Custom")+" &middot; "+plural(n,"person","people")+"</span></button>"}).join("");
+    var groups=[],gm={};PERMS.forEach(function(x){if(!gm[x.g]){gm[x.g]=[];groups.push(x.g)}gm[x.g].push(x)});
+    var body=groups.map(function(g){return'<div class="pg"><span class="eyebrow">'+g+'</span>'+gm[g].map(function(x){
+      var ctl=x.type==="bool"?'<input class="sw" type="checkbox" role="switch" aria-label="'+esc(x.t)+'" data-k="perm" data-p="'+x.k+'"'+((isAdmin||r.perms[x.k])?" checked":"")+(isAdmin?" disabled":"")+'>':
+        '<select class="fx" aria-label="'+esc(x.t)+'" data-k="perm" data-p="'+x.k+'"'+(isAdmin?" disabled":"")+'>'+opts(x.o,isAdmin?"all":r.perms[x.k])+'</select>';
+      var hint=(x.type==="scope"&&!isAdmin&&(r.perms[x.k]==="subjects"||r.perms[x.k]==="classes"))?'<span class="small muted">Uses the '+r.perms[x.k]+' assigned to each person on the People page.</span>':'<span class="small muted">'+x.d+'</span>';
+      return'<div class="row"><div class="t"><span style="font-weight:600">'+esc(x.t)+'</span>'+hint+'</div>'+ctl+'</div>'}).join("")+'</div>'}).join("");
+    var opens=S.menus.filter(function(m){return roleOpens(r,m)}).map(function(m){return'<span class="chip'+(m.visible?"":"")+'">'+esc(m.name)+"</span>"}).join(" ")||'<span class="small muted">No menus.</span>';
+    var editor='<div class="grid2"><div class="f"><label for="rn">Role name</label><input class="fx" id="rn" data-k="role" data-p="name" value="'+esc(r.name)+'"'+(r.builtin?" disabled":"")+'></div><div class="f"><label for="rd">Description</label><input class="fx" id="rd" data-k="role" data-p="desc" value="'+esc(r.desc||"")+'"'+(isAdmin?" disabled":"")+'></div></div>'+
+      (isAdmin?'<p class="note">Admins can do everything. Their permissions are locked so someone can always manage the site.</p>':"")+body+
+      '<div class="f"><span class="lab">Menus this role can open</span><div>'+opens+'</div><p class="small muted">Change who can open each menu on the Menus page.</p></div>'+
+      (r.builtin?"":'<div><button class="btn danger" data-act="delrole" data-id="'+esc(r.id)+'">Delete this role</button></div>');
+    var head='<tr><th>Permission</th>'+S.roles.map(function(x){return"<th>"+esc(x.name)+"</th>"}).join("")+"</tr>";
+    var glance=PERMS.map(function(x){return"<tr><td>"+esc(x.t)+"</td>"+S.roles.map(function(y){var v=y.id==="admin"?(x.type==="bool"?true:"all"):y.perms[x.k];return"<td>"+(x.type==="bool"?(v?'<span class="yes">Yes</span>':'<span class="muted">No</span>'):(v==="none"?'<span class="muted">None</span>':esc(SHORT[v])))+"</td>"}).join("")+"</tr>"}).join("");
+    function chips(list,act){return list.map(function(n){return'<span class="chip x">'+esc(n)+'<button type="button" data-act="'+act+'" data-n="'+esc(n)+'" aria-label="Remove '+esc(n)+'">&times;</button></span>'}).join(" ")||'<span class="small muted">None yet.</span>'}
+    return'<div class="head"><h1>Roles &amp; permissions</h1><p>Create the roles your organisation needs, such as Teacher or Class teacher, and decide exactly what each can see and do.</p></div>'+
+    '<div class="split"><div class="tl">'+list+
+      '<div class="f nr"><label for="nrn">New role name</label><input class="fx" id="nrn" placeholder="e.g. Head of department"><label for="nrb">Start from</label><select class="fx" id="nrb">'+roleOpts("learner",true)+'</select><button class="btn" data-act="addrole" type="button">Create role</button><p class="err" id="nrerr" role="alert"></p></div></div>'+
+    '<div class="sec" style="border:0;padding:0">'+editor+'</div></div>'+
+    '<section class="sec"><h2>Roles at a glance</h2><div class="tw"><table id="glance"><thead>'+head+'</thead><tbody>'+glance+'</tbody></table></div></section>'+
+    '<section class="sec" id="lists"><h2>Subjects and classes</h2><p class="small muted">Some permissions apply to "their subjects" or "their classes". Define the lists here, then assign them to each person on the People page.</p>'+
+      '<div class="grid2"><div class="f"><span class="lab">Subjects</span><div class="chips">'+chips(S.subjects,"delsub")+'</div><div class="addrow"><input class="fx" id="addSub" aria-label="New subject" placeholder="e.g. History"><button class="btn ghost sm" data-act="addsub" type="button">Add</button></div></div>'+
+      '<div class="f"><span class="lab">Classes</span><div class="chips">'+chips(S.classes,"delcls")+'</div><div class="addrow"><input class="fx" id="addCls" aria-label="New class" placeholder="e.g. 8B"><button class="btn ghost sm" data-act="addcls" type="button">Add</button></div></div></div></section>'};
+
+  V.config=function(){return'<div class="head"><h1>Config (JSON)</h1><p>This is the file your Angular or React app reads at start-up to build the menus, tests and access rules. Publish saves it.</p></div><div class="acts"><button class="btn ghost sm" data-act="copy">Copy JSON</button><button class="btn ghost sm" data-act="exportcfg">Download config</button></div><pre id="cfg" tabindex="0">'+esc(jsonCfg())+'</pre>'+impPanel("config")};
+
+  function render(){
+    $("view").innerHTML=V[view]();
+    document.querySelectorAll("#side button[data-v]").forEach(function(b){if(b.dataset.v===view)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
+    refreshBar();refreshPreview();Object.keys(IMP).forEach(refreshImp);tourChrome();
+  }
+  function go(v){view=v;closeNav(true);render();window.scrollTo(0,0)}
+
+  /* drawer */
+  function closeNav(q){var s=$("side");if(!s.classList.contains("open"))return;s.classList.remove("open");$("scrim").hidden=true;document.body.classList.remove("navopen");$("menuBtn").setAttribute("aria-expanded","false");if(!q)$("menuBtn").focus()}
+  $("menuBtn").onclick=function(){$("side").classList.add("open");$("scrim").hidden=false;document.body.classList.add("navopen");$("menuBtn").setAttribute("aria-expanded","true");setTimeout(function(){var c=document.querySelector('#side [aria-current]');if(c)c.focus()},30)};
+  $("navClose").onclick=function(){closeNav()};$("scrim").onclick=function(){closeNav()};
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")closeNav()});
+  window.addEventListener("resize",function(){if(innerWidth>960)closeNav(true)});
+  document.querySelectorAll("#side button[data-v]").forEach(function(b){b.onclick=function(){go(b.dataset.v)}});
+
+  /* toast */
+  function toast(msg,undoFn){
+    var t=$("toast");t.hidden=false;t.innerHTML="<span>"+esc(msg)+"</span>"+(undoFn?'<button type="button" id="undoBtn">Undo</button>':"");
+    undo=undoFn||null;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;undo=null},6000);
+  }
+  function snap(){return JSON.stringify(S)}
+  function delWithUndo(msg,fn){var before=snap();fn();toast(msg,function(){S=JSON.parse(before);render()});render()}
+
+  /* editing */
+  function ensureLanding(){var l=menu(S.site.landing);if(!l||!l.visible){var f=S.menus.filter(function(m){return m.visible})[0];S.site.landing=f?f.id:""}}
+  function findQ(id){for(var i=0;i<S.tests.length;i++)for(var j=0;j<S.tests[i].qs.length;j++)if(S.tests[i].qs[j].id===id)return S.tests[i].qs[j]}
+  function setVal(el){
+    var k=el.dataset.k,p=el.dataset.p,v=el.type==="checkbox"?el.checked:el.value;
+    if(k==="site")S.site[p]=v;
+    else if(k==="menu"){var m=menu(el.dataset.id);m[p]=v;if(p==="visible")ensureLanding()}
+    else if(k==="mrole"){var mm=menu(el.dataset.id),ix=mm.roles.indexOf(el.dataset.r);if(el.checked&&ix<0)mm.roles.push(el.dataset.r);if(!el.checked&&ix>=0)mm.roles.splice(ix,1)}
+    else if(k==="role"){role(selRole)[p]=v}
+    else if(k==="perm"){role(selRole).perms[p]=el.type==="checkbox"?el.checked:v}
+    else if(k==="assign"){var pa=person(selPerson),arr=pa[el.dataset.g],i2=arr.indexOf(el.dataset.n);if(el.checked&&i2<0)arr.push(el.dataset.n);if(!el.checked&&i2>=0)arr.splice(i2,1)}
+    else if(k==="test"){var t=S.tests.filter(function(x){return x.id===selTest})[0];t[p]=(p==="mins"||p==="pass")?Math.max(0,+v||0):v}
+    else if(k==="q")findQ(el.dataset.id).q=v;
+    else if(k==="opt")findQ(el.dataset.id).opts[+el.dataset.o].t=v;
+    else if(k==="person")person(selPerson&&el.dataset.id).role=v;
+    else if(k==="ov"){var pe=person(selPerson);if(v==="default")delete pe.ov[el.dataset.id];else pe.ov[el.dataset.id]=v}
+    else if(k==="pv")pvAs=v;
+  }
+  $("view").addEventListener("input",function(e){
+    var el=e.target;if(el.dataset.imp){impText[el.dataset.imp]=el.value;refreshImp(el.dataset.imp);return}
+    if(!el.dataset.k||el.tagName==="SELECT"||el.type==="checkbox"||el.type==="radio")return;
+    setVal(el);refreshBar();refreshPreview();
+    if(view==="tests"&&el.dataset.k==="test"&&el.dataset.p==="title"){}
+  });
+  $("view").addEventListener("change",function(e){
+    var el=e.target;
+    if(el.dataset.impFile){loadImpFile(el);return}
+    if(el.dataset.act==="correct"){var q=findQ(el.dataset.id);q.opts.forEach(function(o,i){o.c=i===+el.dataset.o});refreshBar();return}
+    if(!el.dataset.k)return;
+    setVal(el);render();
+  });
+  $("view").addEventListener("click",function(e){
+    var b=e.target.closest("[data-act]");if(!b||b.type==="radio")return;
+    var a=b.dataset.act,id=b.dataset.id,i;
+    if(a==="up"||a==="down"){i=S.menus.findIndex(function(m){return m.id===id});var j=a==="up"?i-1:i+1;if(j<0||j>=S.menus.length)return;var x=S.menus.splice(i,1)[0];S.menus.splice(j,0,x);render();var nb=document.querySelector('[data-act="'+a+'"][data-id="'+id+'"]:not(:disabled)')||document.querySelector('[data-act="'+(a==="up"?"down":"up")+'"][data-id="'+id+'"]');if(nb)nb.focus()}
+    else if(a==="addmenu"){var n={id:"m"+uid(),name:"New menu",type:"custom",access:"signed",roles:[],visible:true};S.menus.push(n);render();var f=$("mn"+n.id);f.focus();f.select()}
+    else if(a==="delmenu"){var m=menu(id);delWithUndo('Deleted menu "'+m.name+'".',function(){S.menus=S.menus.filter(function(x){return x.id!==id});ensureLanding()})}
+    else if(a==="seltest"){selTest=id;render()}
+    else if(a==="addtest"){var t={id:"t"+uid(),title:"New test",menu:(S.menus.filter(function(m){return m.type==="tests"})[0]||{}).id||"",mins:10,pass:60,qs:[]};S.tests.push(t);selTest=t.id;render();$("tt").focus();$("tt").select()}
+    else if(a==="deltest"){var tt=S.tests.filter(function(x){return x.id===selTest})[0];delWithUndo('Deleted test "'+tt.title+'".',function(){S.tests=S.tests.filter(function(x){return x.id!==selTest})})}
+    else if(a==="addq"){var te=S.tests.filter(function(x){return x.id===selTest})[0],q={id:"q"+uid(),q:"",opts:[{t:"",c:true},{t:"",c:false}]};te.qs.push(q);render();$("q"+q.id).focus()}
+    else if(a==="delq"){delWithUndo("Deleted question.",function(){S.tests.forEach(function(t){t.qs=t.qs.filter(function(q){return q.id!==id})})})}
+    else if(a==="addopt"){findQ(id).opts.push({t:"",c:false});render()}
+    else if(a==="delopt"){var qq=findQ(id);if(qq.opts.length<=2){toast("A question needs at least two answers.");return}var was=qq.opts[+b.dataset.o].c;qq.opts.splice(+b.dataset.o,1);if(was)qq.opts[0].c=true;render()}
+    else if(a==="selperson"){selPerson=id;render();var sec=$("assign");if(sec)sec.scrollIntoView({block:"start"})}
+    else if(a==="delperson"){var pp=person(id);if(pp.role==="admin"&&S.people.filter(function(x){return x.role==="admin"}).length<2){toast("Keep at least one admin.");return}delWithUndo("Removed "+pp.name+".",function(){S.people=S.people.filter(function(x){return x.id!==id});if(selPerson===id)selPerson=(S.people[0]||{}).id;if(pvAs===id)pvAs="guest"})}
+    else if(a==="invite"){var em=$("ie").value.trim(),er=$("inverr");
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){er.textContent="Enter a valid email address, like name@example.com.";return}
+      if(S.people.some(function(p){return p.email.toLowerCase()===em.toLowerCase()})){er.textContent="That email is already on the list.";return}
+      var np={id:"p"+uid(),name:em.split("@")[0],email:em,role:$("ir").value,status:"Invited",last:"Not yet",ov:{},subjects:[],classes:[]};S.people.push(np);selPerson=np.id;render();toast("Invite added for "+em+". (Preview: no email is sent.)")}
+    else if(a==="selrole"){selRole=id;render()}
+    else if(a==="addrole"){var nm=$("nrn").value.trim(),er2=$("nrerr");
+      if(!nm){er2.textContent="Give the role a name, for example Teacher.";return}
+      if(S.roles.some(function(r){return r.name.toLowerCase()===nm.toLowerCase()})){er2.textContent="A role called "+nm+" already exists.";return}
+      var base=role($("nrb").value)||role("learner"),nr={id:"r_"+uid(),name:nm,desc:"",perms:JSON.parse(JSON.stringify(base.perms))};
+      S.roles.push(nr);selRole=nr.id;render();toast('Role "'+nm+'" created. Set what it can do, then assign it to people.');var rd=$("rd");if(rd)rd.focus()}
+    else if(a==="delrole"){var dr=role(id),cnt=S.people.filter(function(p){return p.role===id}).length;
+      if(cnt){toast(plural(cnt,"person","people")+" still "+(cnt===1?"has":"have")+' the role "'+dr.name+'". Move them to another role first.');return}
+      delWithUndo('Deleted role "'+dr.name+'".',function(){S.roles=S.roles.filter(function(r){return r.id!==id});S.menus.forEach(function(m){m.roles=m.roles.filter(function(x){return x!==id})});selRole="learner"})}
+    else if(a==="addsub"||a==="addcls"){var isS=a==="addsub",inp=$(isS?"addSub":"addCls"),val=inp.value.trim(),lst=isS?S.subjects:S.classes;
+      if(!val)return;if(lst.some(function(x){return x.toLowerCase()===val.toLowerCase()})){toast(val+" is already in the list.");return}
+      lst.push(val);render();$(isS?"addSub":"addCls").focus()}
+    else if(a==="delsub"||a==="delcls"){var isS2=a==="delsub",nme=b.dataset.n,key=isS2?"subjects":"classes";
+      delWithUndo('Removed "'+nme+'".',function(){S[key]=S[key].filter(function(x){return x!==nme});S.people.forEach(function(p){p[key]=p[key].filter(function(x){return x!==nme})})})}
+    else if(a==="tpl")impTpl(b.dataset.key);
+    else if(a==="tplshow"){var kk=b.dataset.key;impText[kk]=tplText(kk);var ta=$("impTxt-"+kk);ta.value=impText[kk];refreshImp(kk);$("impNote-"+kk).textContent="The template is in the box. Replace the example rows with yours, then add."}
+    else if(a==="impclear"){var k2=b.dataset.key;impText[k2]="";$("impTxt-"+k2).value="";$("impNote-"+k2).textContent="";refreshImp(k2)}
+    else if(a==="impgo")impGo(b.dataset.key);
+    else if(a==="exportcfg")exportCfg();
+    else if(a==="copy"){var txt=jsonCfg();try{navigator.clipboard.writeText(txt).then(function(){toast("Config copied.")},function(){sel()})}catch(x){sel()}function sel(){var r=document.createRange();r.selectNodeContents($("cfg"));var s=getSelection();s.removeAllRanges();s.addRange(r);toast("Press Ctrl+C to copy the selected config.")}}
+  });
+  $("toast").addEventListener("click",function(e){if(e.target.id==="undoBtn"&&undo){var f=undo;undo=null;$("toast").hidden=true;f()}});
+
+  /* publish */
+  function problems(){
+    var p=[],seen={},rs={};
+    S.roles.forEach(function(r){var n=(r.name||"").trim().toLowerCase();if(!n)p.push("Every role needs a name.");else if(rs[n])p.push('Two roles are both called "'+r.name+'".');rs[n]=1});
+    if(!S.menus.some(function(m){return m.visible}))p.push("Show at least one menu.");
+    S.menus.forEach(function(m){var n=(m.name||"").trim().toLowerCase();if(!n)p.push("Every menu needs a name.");else if(seen[n])p.push('Two menus are both called "'+m.name+'".');seen[n]=1;if(m.type==="link"&&!/^https?:\/\//.test(m.url||""))p.push('"'+m.name+'" needs a link starting with http:// or https://.')});
+    S.tests.forEach(function(t){if(!(t.title||"").trim())p.push("Give every test a title.");if(!t.qs.length)p.push('"'+t.title+'" has no questions.');t.qs.forEach(function(q){if(!(q.q||"").trim())p.push('A question in "'+t.title+'" is empty.');if(q.opts.some(function(o){return!(o.t||"").trim()}))p.push('A question in "'+t.title+'" has a blank answer.')})});
+    return p.filter(function(x,i,a){return a.indexOf(x)===i});
+  }
+  $("publish").onclick=function(){
+    var p=problems();
+    if(p.length){toast("Can't publish yet: "+p[0]+(p.length>1?" (+"+(p.length-1)+" more)":""));return}
+    BASE=JSON.stringify(S);try{localStorage.setItem(KEY,BASE)}catch(e){}
+    refreshBar();toast("Published. The site now uses these settings.");
+  };
+  $("discard").onclick=function(){var cur=snap();S=JSON.parse(BASE);toast("Discarded unpublished changes.",function(){S=JSON.parse(cur);render()});render()};
+  window.addEventListener("beforeunload",function(e){if(dirty()){e.preventDefault();e.returnValue=""}});
+  $("themeBtn").onclick=function(){var r=document.documentElement,d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("ld.theme",n)}catch(e){}};
+/* ===== bulk import ===== */
+  var impText={tests:"",people:"",menus:"",config:""};
+  function saveFile(name,text,mime){
+    return (async function(){
+      try{if(window.claude&&window.claude.use){var d=await window.claude.use("downloads");if(d){await d.save({filename:name,data:text});return "saved"}}}catch(e){if(e&&e.code==="declined")return "declined"}
+      try{var b=new Blob([text],{type:mime||"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();return "saved"}catch(e){return "failed"}
+    })();
+  }
+  function csvRows(text){
+    text=String(text||"").replace(/^﻿/,"");
+    var first=text.split(/\r?\n/).filter(function(l){return l.trim()&&l.trim()[0]!=="#"})[0]||"";
+    var d=(first.indexOf("\t")>=0&&first.indexOf(",")<0)?"\t":",";
+    var rows=[],row=[],cell="",q=false,i,c;
+    for(i=0;i<text.length;i++){c=text[i];
+      if(q){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+      else if(c==='"'&&!cell)q=true;
+      else if(c===d){row.push(cell);cell=""}
+      else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(cell);cell="";rows.push(row);row=[]}
+      else cell+=c}
+    row.push(cell);rows.push(row);
+    return rows.filter(function(r){var j=r.join("").trim();return j&&r[0].trim()[0]!=="#"}).map(function(r){return r.map(function(x){return x.trim()})});
+  }
+  function csvOut(rows){return rows.map(function(r){return r.map(function(x){x=String(x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x}).join(",")}).join("\r\n")+"\r\n"}
+  function fidx(h,names){for(var i=0;i<h.length;i++)if(names.indexOf(h[i])>=0)return i;return -1}
+  function table(text,need,needMsg){
+    var r=csvRows(text);if(!r.length)return{fatal:""};
+    if(r.length>2001)return{fatal:"That is more than 2,000 rows. Split the file and import it in parts."};
+    var h=r[0].map(function(x){return x.toLowerCase()});
+    var miss=need.filter(function(n){return fidx(h,n)<0});
+    if(miss.length)return{fatal:needMsg};
+    return{h:h,rows:r.slice(1)};
+  }
+  var HELP_T=["# Learning Desk: test questions template","# One row per question. Put the right answer in Correct answer and the others in the Wrong answer columns (at least one).","# We mix up the order of the answers when you import. Minutes and Pass % are optional: fill them on the first row of each test.","# Delete these # lines and the example rows below, then save as .csv"];
+  var HELP_P=["# Learning Desk: people template","# Email is required. Name is optional. Role is any role name from your setup, such as Learner, Editor or Teacher (blank means Learner).","# Subjects and Classes are optional: separate several with semicolons, using names you already added. Admins are added one at a time, not in bulk.","# Delete these # lines and the example rows below, then save as .csv"];
+  var HELP_M=["# Learning Desk: menus template","# Menu name is required. Page type: Home, Videos, Notes, Timeline, Tests, FAQ, Custom page or External link.","# Who can see it: Everyone, Signed-in, Admins, or role names separated by semicolons (for example Teacher;Class teacher). Shown: Yes or No. Link is needed only for External link.","# Delete these # lines and the example rows below, then save as .csv"];
+  function withHelp(h,rows){return h.join("\r\n")+"\r\n"+csvOut(rows)}
+  function tplText(k){
+    if(k==="tests")return withHelp(HELP_T,[["Test","Question","Correct answer","Wrong answer 1","Wrong answer 2","Wrong answer 3","Minutes","Pass %"],["Python basics","Which keyword defines a function?","def","func","function","lambda",15,60],["Python basics","What does len([1,2,3]) return?","3","2","4","","",""],["Statistics","What is the median of 1, 3, 9?","3","4.3","9","","",""]]);
+    if(k==="people")return withHelp(HELP_P,[["Email","Name","Role","Subjects","Classes"],["asha@example.com","Asha Rao","Learner","",""],["ravi@example.com","Ravi Kumar","Editor","",""],["guest@example.com","","Viewer","",""]]);
+    if(k==="menus")return withHelp(HELP_M,[["Menu name","Page type","Who can see it","Shown","Link"],["Glossary","Custom page","Signed-in","Yes",""],["Course book","External link","Everyone","Yes","https://example.com/book"],["Draft page","Custom page","Admins","No",""]]);
+    return JSON.stringify({site:{name:"My Course",tagline:"One line about the course.",signin:true,guest:true,signup:true},roles:[{id:"teacher",name:"Teacher",description:"Sees results for their own subjects.",permissions:{menus:false,content:true,tests:true,results:"subjects",attendance:"none",mark:false,export:false,people:false,roles:false}}],subjects:["Maths"],classes:["6A"],menus:[{name:"Home",type:"home",visible:true,access:"everyone"},{name:"Results",type:"results",visible:true,access:"roles",roles:["teacher"]}],tests:[{title:"Sample test",minutes:10,passPercent:60,questions:[{text:"2 + 2 = ?",options:[{text:"4",correct:true},{text:"5",correct:false}]}]}],people:[{name:"Asha Rao",email:"asha@example.com",role:"teacher",subjects:["Maths"],classes:[],overrides:{}}]},null,2);
+  }
+  function typeKey(v){
+    v=(v||"").toLowerCase().trim();if(!v)return"custom";
+    for(var i=0;i<TYPES.length;i++){if(TYPES[i][0]===v||TYPES[i][1].toLowerCase()===v)return TYPES[i][0]}
+    if(/^video/.test(v))return"videos";if(/^note/.test(v))return"notes";if(/^(time|road)/.test(v))return"roadmap";if(/^test/.test(v))return"tests";if(/^link|^external/.test(v))return"link";if(/^custom/.test(v))return"custom";if(/^attend/.test(v))return"attendance";if(/^result/.test(v))return"results";
+    return null;
+  }
+  function cfgRoles(j){
+    var base=defRoles();if(!Array.isArray(j.roles))return base;
+    var out=j.roles.map(function(r){var id=r.id||"r_"+uid(),b=base.filter(function(x){return x.id===id})[0],perms=P({});
+      PERMS.forEach(function(x){var v=r.permissions&&r.permissions[x.k];if(x.type==="bool")perms[x.k]=!!v;else perms[x.k]=x.o.some(function(o){return o[0]===v})?v:"none"});
+      return{id:id,name:r.name,desc:r.description||"",builtin:!!b,perms:b&&b.id==="admin"?b.perms:perms}});
+    if(!out.some(function(r){return r.id==="admin"}))out.unshift(base[0]);
+    return out;
+  }
+  function accessKey(v){
+    v=(v||"").toLowerCase().trim();if(!v)return{access:"signed",roles:[]};
+    if(/^(every|guest|public)/.test(v))return{access:"everyone",roles:[]};
+    if(/^(sign|member|logged)/.test(v))return{access:"signed",roles:[]};
+    if(/^admins?$/.test(v))return{access:"roles",roles:[]};
+    var out=[];
+    for(var t,i=0,parts=v.split(/[;|]/).map(function(x){return x.trim()}).filter(Boolean);i<parts.length;i++){t=parts[i];
+      var f=S.roles.filter(function(r){var n=r.name.toLowerCase();return r.id!=="admin"&&(n===t||n+"s"===t||n===t+"s")})[0];
+      if(!f)return null;if(out.indexOf(f.id)<0)out.push(f.id)}
+    return out.length?{access:"roles",roles:out}:null;
+  }
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+  function snip(t,n){t=String(t||"");return t.length>n?t.slice(0,n-1)+"…":t}
+
+  var IMP={
+    tests:{title:"Bulk import questions",desc:"Add many test questions at once. New tests are created automatically; a test with the same title gets the extra questions.",file:"learning-desk-tests-template.csv",ext:"csv",btn:"question",
+      analyse:function(){
+        var t=table(impText.tests,[["test","test title"],["question"],["correct answer","correct"]],"The file needs these columns in the first row: Test, Question, Correct answer, Wrong answer 1. Download the template to see the layout.");
+        if(t.fatal!==undefined)return t;
+        var h=t.h,ti=fidx(h,["test","test title"]),qi=fidx(h,["question"]),ci=fidx(h,["correct answer","correct"]),mi=fidx(h,["minutes","time limit"]),pi=fidx(h,["pass %","pass","pass mark"]),wi=[];
+        h.forEach(function(x,i){if(x.indexOf("wrong")===0)wi.push(i)});
+        if(!wi.length)return{fatal:"Add at least one Wrong answer column (Wrong answer 1)."};
+        var seen={};
+        return{items:t.rows.map(function(r){
+          var d={test:r[ti]||"",q:r[qi]||"",c:r[ci]||"",w:wi.map(function(i){return r[i]||""}).filter(Boolean),mins:mi>=0&&r[mi]!==""?+r[mi]:null,pass:pi>=0&&r[pi]!==""?+r[pi]:null},msg="";
+          if(!d.test)msg="Missing test title.";else if(!d.q)msg="Missing question.";else if(!d.c)msg="Missing correct answer.";else if(!d.w.length)msg="Add at least one wrong answer.";
+          else if(d.mins!==null&&(isNaN(d.mins)||d.mins<0))msg="Minutes must be a number.";
+          else if(d.pass!==null&&(isNaN(d.pass)||d.pass<0||d.pass>100))msg="Pass % must be between 0 and 100.";
+          else{var key=d.test.toLowerCase()+"|"+d.q.toLowerCase();if(seen[key])msg="Duplicate of an earlier row.";seen[key]=1;
+            var ex=S.tests.filter(function(x){return x.title.toLowerCase()===d.test.toLowerCase()})[0];
+            if(ex&&ex.qs.some(function(q){return q.q.toLowerCase()===d.q.toLowerCase()}))msg="This question is already in "+ex.title+"."}
+          return{ok:!msg,label:d.test+": "+snip(d.q,60),msg:msg||"Ready",data:d}})}
+      },
+      apply:function(list){
+        var tm=(S.menus.filter(function(m){return m.type==="tests"})[0]||{}).id||"";
+        list.forEach(function(d){
+          var t=S.tests.filter(function(x){return x.title.toLowerCase()===d.test.toLowerCase()})[0];
+          if(!t){t={id:"t"+uid(),title:d.test,menu:tm,mins:10,pass:60,qs:[]};S.tests.push(t)}
+          if(d.mins!==null&&t.qs.length===0)t.mins=d.mins;if(d.pass!==null&&t.qs.length===0)t.pass=d.pass;
+          var opts=shuffle([{t:d.c,c:true}].concat(d.w.map(function(w){return{t:w,c:false}})));
+          t.qs.push({id:"q"+uid(),q:d.q,opts:opts});selTest=t.id});
+      }},
+    people:{title:"Bulk invite people",desc:"Invite many people at once. Everyone is added as Invited; you can change roles and page access afterwards.",file:"learning-desk-people-template.csv",ext:"csv",btn:"person",pl:"people",
+      analyse:function(){
+        var t=table(impText.people,[["email","e-mail"]],"The file needs an Email column in the first row (Name, Role, Subjects and Classes are optional). Download the template to see the layout.");
+        if(t.fatal!==undefined)return t;
+        var h=t.h,ei=fidx(h,["email","e-mail"]),ni=fidx(h,["name"]),ri=fidx(h,["role"]),si=fidx(h,["subjects","subject"]),ci=fidx(h,["classes","class"]),seen={};
+        function names(){return S.roles.filter(function(x){return x.id!=="admin"}).map(function(x){return x.name}).join(", ")}
+        function list(v,pool,label){var out=[],bad=null;(v||"").split(/[;|]/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){var f=pool.filter(function(y){return y.toLowerCase()===x.toLowerCase()})[0];if(f)out.push(f);else if(!bad)bad='Unknown '+label+' "'+x+'". Add it under Roles & permissions first.'});return{v:out,bad:bad}}
+        return{items:t.rows.map(function(r){
+          var em=(r[ei]||"").trim(),rn=(ri>=0?r[ri]:"")||"Learner",msg="";
+          var rr=S.roles.filter(function(x){return x.name.toLowerCase()===rn.toLowerCase()})[0];
+          var sj=list(si>=0?r[si]:"",S.subjects,"subject"),cl=list(ci>=0?r[ci]:"",S.classes,"class");
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em))msg="That email looks incomplete.";
+          else if(!rr)msg='Unknown role "'+rn+'". Use one of: '+names()+'.';
+          else if(rr.id==="admin")msg="Admins can't be added in bulk. Invite them one at a time above.";
+          else if(sj.bad)msg=sj.bad;else if(cl.bad)msg=cl.bad;
+          else if(seen[em.toLowerCase()])msg="Listed twice in this file.";
+          else if(S.people.some(function(p){return p.email.toLowerCase()===em.toLowerCase()}))msg="Already on the people list.";
+          seen[em.toLowerCase()]=1;
+          return{ok:!msg,label:em+" ("+(rr?rr.name:rn)+")",msg:msg||"Ready",data:{email:em,name:ni>=0?r[ni]:"",role:rr&&rr.id,subjects:sj.v,classes:cl.v}}})}
+      },
+      apply:function(list){list.forEach(function(d){S.people.push({id:"p"+uid(),name:d.name||d.email.split("@")[0],email:d.email,role:d.role,status:"Invited",last:"Not yet",ov:{},subjects:d.subjects,classes:d.classes})})}},
+    menus:{title:"Bulk add menus",desc:"Add several menus in one go. They go to the end of the list and you can reorder them afterwards.",file:"learning-desk-menus-template.csv",ext:"csv",btn:"menu",
+      analyse:function(){
+        var t=table(impText.menus,[["menu name","name","menu"]],"The file needs a Menu name column in the first row. Download the template to see the layout.");
+        if(t.fatal!==undefined)return t;
+        var h=t.h,ni=fidx(h,["menu name","name","menu"]),ti=fidx(h,["page type","type"]),vi=fidx(h,["who can see it","visible to","access"]),si=fidx(h,["shown","visible"]),li=fidx(h,["link","url","link address"]),seen={};
+        return{items:t.rows.map(function(r){
+          var nm=r[ni]||"",ty=typeKey(ti>=0?r[ti]:""),ac=accessKey(vi>=0?r[vi]:""),sh=si>=0?(r[si]||"yes").toLowerCase():"yes",lk=li>=0?r[li]||"":"",msg="";
+          if(!nm)msg="Missing menu name.";
+          else if(ty===null)msg='Unknown page type "'+r[ti]+'".';
+          else if(ac===null)msg='Unknown "who can see it" value "'+r[vi]+'". Use Everyone, Signed-in, Admins, or role names such as '+S.roles.filter(function(x){return x.id!=="admin"}).slice(0,2).map(function(x){return x.name}).join(";")+".";
+          else if(ty==="link"&&!/^https?:\/\//.test(lk))msg="External links need an address starting with http:// or https://.";
+          else if(seen[nm.toLowerCase()]||S.menus.some(function(m){return m.name.toLowerCase()===nm.toLowerCase()}))msg="A menu called "+nm+" already exists.";
+          seen[nm.toLowerCase()]=1;
+          return{ok:!msg,label:nm+" ("+typeName(ty||"custom")+")",msg:msg||"Ready",data:{name:nm,type:ty,access:ac&&ac.access,roles:ac&&ac.roles,visible:!/^(no|n|false|0|hidden)$/.test(sh),url:lk}}})}
+      },
+      apply:function(list){list.forEach(function(d){var m={id:"m"+uid(),name:d.name,type:d.type,access:d.access,roles:d.roles,visible:d.visible};if(d.type==="link")m.url=d.url;S.menus.push(m)})}},
+    config:{title:"Import a whole setup",desc:"Load a full setup (site, roles, menus, tests and people) from a JSON file, for example one exported from another course. This replaces everything you have now. You can undo it right after.",file:"learning-desk-config-template.json",ext:"json",btn:"setup",whole:true,
+      analyse:function(){
+        var raw=impText.config.trim();if(!raw)return{fatal:""};
+        var j;try{j=JSON.parse(raw)}catch(e){return{fatal:"That isn't valid JSON: "+e.message+". Export a setup from this page or download the template to see the format."}}
+        var items=[],bad=false,rl=cfgRoles(j);
+        function chk(label,arr,fn){var msg="";if(!Array.isArray(arr))msg="Missing list.";else{for(var i=0;i<arr.length&&!msg;i++){var e=fn(arr[i]);if(e)msg="Item "+(i+1)+": "+e}}
+          items.push({ok:!msg,label:label,msg:msg||((arr||[]).length+" found")});if(msg)bad=true}
+        function ref(x){x=String(x==null?"":x).toLowerCase();return rl.filter(function(r){return r.id.toLowerCase()===x||r.name.toLowerCase()===x})[0]}
+        if(j.roles!==undefined)chk("Roles",j.roles,function(r){return!r||!(r.name||"").trim()?"needs a name.":null});
+        chk("Menus",j.menus,function(m){if(!m||!(m.name||"").trim())return"needs a name.";if(typeKey(m.type)===null)return'unknown type "'+m.type+'".';if(m.access!=null&&["everyone","signed","roles"].indexOf(m.access)<0)return'access must be "everyone", "signed" or "roles".';if(m.access==="roles"&&m.roles!=null){for(var i=0;i<m.roles.length;i++)if(!ref(m.roles[i]))return'unknown role "'+m.roles[i]+'".'}});
+        chk("Tests",j.tests||[],function(t){if(!t||!(t.title||"").trim())return"needs a title.";if(!Array.isArray(t.questions))return'"'+t.title+'" needs a questions list.';for(var i=0;i<t.questions.length;i++){var q=t.questions[i];if(!q||!(q.text||"").trim())return'a question in "'+t.title+'" is empty.';if(!Array.isArray(q.options)||q.options.length<2||!q.options.some(function(o){return o&&o.correct}))return'"'+snip(q.text,30)+'" needs 2+ answers with one marked correct.'}});
+        chk("People",j.people||[],function(p){if(!p||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email||""))return"needs a valid email.";if(!ref(p.role||"Learner"))return'unknown role "'+p.role+'".'});
+        if(!bad&&!(j.menus||[]).some(function(m){return m.visible!==false})){items.push({ok:false,label:"Visible menus",msg:"At least one menu must be shown."});bad=true}
+        return{items:items,whole:true,json:j,blocked:bad};
+      },
+      apply:function(){
+        var j=JSON.parse(impText.config),rl=cfgRoles(j),ids={};
+        function ref(x){x=String(x==null?"":x).toLowerCase();var f=rl.filter(function(r){return r.id.toLowerCase()===x||r.name.toLowerCase()===x})[0];return f?f.id:"learner"}
+        var menus=(j.menus||[]).map(function(m){var id=m.id||"m"+uid();ids[id]=1;var ac=m.access||(m.minRole==null?"signed":(+m.minRole===0?"everyone":(+m.minRole===1?"signed":"roles")));
+          var o={id:id,name:m.name,type:typeKey(m.type),access:ac,roles:ac==="roles"?(m.roles?m.roles.map(ref):(+m.minRole===3?["editor"]:[])):[],visible:m.visible!==false};if(o.type==="link")o.url=m.url||"";return o});
+        var tm=(menus.filter(function(m){return m.type==="tests"})[0]||{}).id||"";
+        var tests=(j.tests||[]).map(function(t){return{id:t.id||"t"+uid(),title:t.title,menu:ids[t.menu]?t.menu:tm,mins:+t.minutes||10,pass:t.passPercent==null?60:+t.passPercent,qs:t.questions.map(function(q){return{id:"q"+uid(),q:q.text,opts:q.options.map(function(o){return{t:o.text||"",c:!!o.correct}})}})}});
+        var people=(j.people||[]).map(function(p){return{id:"p"+uid(),name:p.name||p.email.split("@")[0],email:p.email,role:ref(p.role||"Learner"),status:"Invited",last:"Not yet",ov:p.overrides||{},subjects:p.subjects||[],classes:p.classes||[]}});
+        if(!people.some(function(p){return p.role==="admin"}))people.unshift(S.people.filter(function(p){return p.role==="admin"})[0]||{id:"p"+uid(),name:"Admin",email:"admin@example.com",role:"admin",status:"Active",last:"Today",ov:{},subjects:[],classes:[]});
+        var site=Object.assign({},S.site,j.site||{});S={site:site,roles:rl,subjects:j.subjects||[],classes:j.classes||[],menus:menus,tests:tests,people:people};
+        var l=menus.filter(function(m){return m.id===site.landing&&m.visible})[0];if(!l){var f=menus.filter(function(m){return m.visible})[0];site.landing=f?f.id:""}
+        selTest=(tests[0]||{}).id;selPerson=(people[0]||{}).id;selRole=(rl[0]||{}).id;pvAs="guest";
+      }}
+  };
+  function impPanel(k){
+    var c=IMP[k];
+    var steps=c.whole?'<li>Download the template, or export a setup with Download config above.</li><li>Edit it in any text editor.</li><li>Choose the file or paste it in the box.</li><li>Check the preview, then replace your setup.</li>':'<li>Download the template.</li><li>Fill it in with Excel, Google Sheets or any text editor. Keep the header row.</li><li>Choose the file, or paste the rows in the box.</li><li>Check the preview, then add the rows that are ready.</li>';
+    return'<section class="sec imp" id="imp-'+k+'"><h2>'+c.title+'</h2><p class="muted small">'+c.desc+'</p><ol class="steps">'+steps+'</ol>'+
+    '<div class="acts"><button class="btn sm" data-act="tpl" data-key="'+k+'" type="button">Download template</button>'+
+    '<span class="btn ghost sm filebtn">Choose a file<input type="file" accept=".'+c.ext+',.txt" data-imp-file="'+k+'" aria-label="Choose a '+c.ext.toUpperCase()+' file to import for '+esc(c.title)+'"></span>'+
+    '<button class="btn ghost sm" data-act="tplshow" data-key="'+k+'" type="button">Show template in the box</button>'+
+    '<button class="btn ghost sm" data-act="impclear" data-key="'+k+'" type="button">Clear</button></div>'+
+    '<div class="f"><label for="impTxt-'+k+'">Or paste here</label><textarea class="fx" id="impTxt-'+k+'" data-imp="'+k+'" spellcheck="false" placeholder="'+(c.whole?"Paste a JSON setup":"Paste rows with a header line")+'">'+esc(impText[k])+'</textarea></div>'+
+    '<p class="small" id="impNote-'+k+'" role="status"></p><div id="impOut-'+k+'"></div>'+
+    '<div><button class="btn" id="impGo-'+k+'" data-act="impgo" data-key="'+k+'" type="button" disabled>Add</button></div></section>';
+  }
+  function refreshImp(k){
+    var out=$("impOut-"+k);if(!out)return;var c=IMP[k],r=c.analyse(),go=$("impGo-"+k);
+    if(r.fatal!==undefined){out.innerHTML=r.fatal?'<p class="err" role="alert">'+esc(r.fatal)+'</p>':"";go.disabled=true;go.textContent=c.whole?"Replace current setup":"Add";return}
+    var ok=r.items.filter(function(x){return x.ok}),bad=r.items.length-ok.length;
+    var head=c.whole?(r.blocked?'<p class="sum err">Fix the items marked below before importing.</p>':'<p class="sum good">Looks good. Importing replaces your current roles, menus, tests and people.</p>'):
+      '<p class="sum"><strong class="'+(ok.length?"good":"")+'">'+ok.length+" of "+r.items.length+" row"+(r.items.length===1?"":"s")+" ready</strong>"+(bad?' &middot; <span class="fixme">'+bad+" need"+(bad===1?"s":"")+" fixing and will be skipped</span>":"")+"</p>";
+    var rows=r.items.slice(0,80).map(function(x,i){return'<tr><td>'+(c.whole?"":i+1)+'</td><td>'+esc(x.label)+'</td><td class="'+(x.ok?"good":"fixme")+'">'+(x.ok?"&#10003; ":"")+esc(x.msg)+"</td></tr>"}).join("");
+    out.innerHTML=head+'<div class="pt"><table><thead><tr><th>'+(c.whole?"":"Row")+"</th><th>"+(c.whole?"Part":"Item")+"</th><th>Status</th></tr></thead><tbody>"+rows+"</tbody></table></div>"+(r.items.length>80?'<p class="small muted">Showing the first 80 rows. All rows are checked.</p>':"");
+    if(c.whole){go.disabled=!!r.blocked;go.textContent="Replace current setup"}
+    else{go.disabled=!ok.length;go.textContent=ok.length?"Add "+ok.length+" "+(ok.length===1?c.btn:(c.pl||c.btn+"s")):"Nothing to add yet"}
+  }
+  function loadImpFile(el){
+    var k=el.dataset.impFile,f=el.files&&el.files[0];if(!f)return;
+    if(f.size>5*1024*1024){toast("That file is over 5 MB. Split it and import in parts.");el.value="";return}
+    var rd=new FileReader();rd.onload=function(){impText[k]=String(rd.result);var t=$("impTxt-"+k);if(t)t.value=impText[k];refreshImp(k);$("impNote-"+k).textContent="Loaded "+f.name+".";el.value=""};
+    rd.onerror=function(){toast("Couldn't read that file.")};rd.readAsText(f);
+  }
+  async function impTpl(k){
+    var c=IMP[k],r=await saveFile(c.file,tplText(k),c.ext==="json"?"application/json":"text/csv;charset=utf-8"),n=$("impNote-"+k);
+    if(n)n.textContent=r==="saved"?"Template ready. Open it, fill it in, then choose the file here.":r==="declined"?"Download cancelled.":"Your browser blocked the download. Use Show template in the box, then copy it into a file named "+c.file+".";
+  }
+  function impGo(k){
+    var c=IMP[k],r=c.analyse();if(r.fatal!==undefined)return;
+    var ok=r.items.filter(function(x){return x.ok});
+    if(c.whole){if(r.blocked)return;delWithUndo("Setup replaced. Publish to make it live.",function(){c.apply();impText[k]=""});return}
+    if(!ok.length)return;
+    delWithUndo("Added "+ok.length+" "+(ok.length===1?c.btn:(c.pl||c.btn+"s"))+". Publish to make it live.",function(){c.apply(ok.map(function(x){return x.data}));impText[k]=""});
+  }
+  function exportCfg(){saveFile("learning-desk-config.json",jsonCfg(),"application/json").then(function(r){toast(r==="saved"?"Config ready.":r==="declined"?"Download cancelled.":"Your browser blocked the download. Use Copy JSON instead.")})}
+
+/* ===== guided tour ===== */
+  var TKEY="learningdesk.admin.tour",seen={};
+  try{seen=JSON.parse(localStorage.getItem(TKEY)||"{}")||{}}catch(e){}
+  function q(sel){return document.querySelector(sel)}
+  var TOURS={
+    overview:[
+      {el:function(){return innerWidth>960?$("side"):$("menuBtn")},t:"Admin sections",p:"Switch between Site settings, Menus, Tests, People and the Config file here. On a phone this button opens the same list."},
+      {el:function(){return $("view")},t:"One page per job",p:"Each section edits one part of your website. Nothing changes for your learners until you publish."},
+      {el:function(){return $("publish")},t:"Publish when you are ready",p:"Your edits stay as a draft. Publish checks them, for example that at least one menu is shown, and then makes them live. Discard drops the draft."},
+      {el:function(){return innerWidth>760?$("statePill"):null},t:"Draft status",p:"Shows whether you have unpublished changes. It turns amber as soon as you edit anything."},
+      {el:function(){return $("themeBtn")},t:"Light or dark",p:"Switch the look of this admin page. It starts with your device setting."}
+    ],
+    site:[
+      {el:function(){return $("sn")},t:"Name and tagline",p:"The name shows in the top bar of your website and the tagline sits under the main heading on the Home page."},
+      {el:function(){return $("sl")},t:"Landing page",p:"The page people see first. Only menus that are shown can be picked."},
+      {el:function(){return q("#view .sec:last-child")},t:"Who can get in",p:"Turn sign-in on or off, allow guests to browse public pages, and choose whether people can create their own account or only join by invite."}
+    ],
+    menus:[
+      {el:function(){return q(".mrow .mv")},t:"Reorder",p:"Move a menu up or down. This is the order of the tabs on a computer and of the list in the phone drawer."},
+      {el:function(){return q(".mrow .nm")||q(".mrow input")},t:"Rename a menu",p:"Type the name your learners will see, such as Videos & Content or Course notes."},
+      {el:function(){return q(".mrow .ty")||q(".mrow select")},t:"Page type",p:"Chooses what the page does: videos, notes, timeline, tests, FAQ, a custom text page or a link to another website."},
+      {el:function(){return q(".mrow .vi")||q(".mrow select")},t:"Who can see it",p:"Show a menu to everyone, to signed-in users, or only to roles you choose, such as Teacher or Class teacher. Individual exceptions are set on the People page."},
+      {el:function(){return q(".mrow .tg")},t:"Show or hide",p:"Hide a menu without deleting it. Hidden menus are shaded here and disappear from the website."},
+      {el:function(){return q('[data-act="addmenu"]')},t:"Add a menu",p:"Adds a new menu at the end and puts the cursor in its name."},
+      {el:function(){return $("pvBox")},t:"Live preview",p:"See the tab bar and the phone drawer exactly as they would look. Use Preview as to check what a guest or a particular person will see."},
+      {el:function(){return $("imp-menus")},t:"Add many at once",p:"Download the CSV template, fill in one row per menu, then load it. The preview lists any row that needs fixing before you add the rest."}
+    ],
+    tests:[
+      {el:function(){return q(".tl")},t:"Your tests",p:"Pick a test to edit it, or start a new one. Each shows its number of questions and time limit."},
+      {el:function(){return q("#view .grid2")},t:"Test settings",p:"Set the title, which Tests menu it appears under, the time limit in minutes, and the pass mark as a percent."},
+      {el:function(){return q(".qc")},t:"A question",p:"Write the question, then add its answers. Delete removes just this question."},
+      {el:function(){return q(".opt")},t:"Mark the right answer",p:"Select the round button next to the correct answer. The cross removes an answer. Every question needs at least two."},
+      {el:function(){return q('[data-act="addq"]')},t:"Add a question",p:"Adds a blank question at the end and puts the cursor in it."},
+      {el:function(){return $("imp-tests")},t:"Import many questions",p:"Download the CSV template, fill in one row per question, then load it. New tests are created for you and repeated questions are skipped."}
+    ],
+    roles:[
+      {el:function(){return q(".tl")},t:"Your roles",p:"Every person has one role. Built-in roles come ready made, and you can add your own, such as Teacher, Class teacher or Head of department."},
+      {el:function(){return q(".nr")},t:"Create a new role",p:"Name it and pick an existing role to start from, so you only change what differs. Then set its permissions."},
+      {el:function(){return q(".pg")},t:"What the role can do",p:"Turn abilities on or off, such as editing tests or marking attendance."},
+      {el:function(){return q('[data-p="results"]')?q('[data-p="results"]').closest(".row"):null},t:"Whose results",p:"Choose no results, their own, students in their subjects, students in their classes, or everyone's. A teacher can see one subject or all of them."},
+      {el:function(){return q('[data-p="attendance"]')?q('[data-p="attendance"]').closest(".row"):null},t:"Who sees attendance",p:"Decide whether this role can see attendance at all, and for which students. A class teacher can see only their own class."},
+      {el:function(){return $("glance")},t:"Roles at a glance",p:"Compare every role side by side to spot gaps before you publish."},
+      {el:function(){return $("lists")},t:"Subjects and classes",p:"Define your subjects and classes here. Roles that use 'their subjects' or 'their classes' rely on what you assign to each person."}
+    ],
+    people:[
+      {el:function(){return q(".inv")},t:"Invite someone",p:"Enter an email and pick a role, including the roles you created. They appear in the list as Invited until they join."},
+      {el:function(){return q(".tw")},t:"Everyone with access",p:"See each person, their role and when they were last active. Change a role straight from the list."},
+      {el:function(){return q(".tw select")},t:"Change a role",p:"Pick any role from the list. What the person can see and do updates straight away."},
+      {el:function(){return q('[data-act="selperson"]')},t:"Open a person's details",p:"Shows their assignments, what they can do and their page access."},
+      {el:function(){return $("assign")},t:"Subjects and classes",p:"Assign the subjects a teacher teaches and the classes they look after. Roles limited to 'their subjects' or 'their classes' use these."},
+      {el:function(){return $("effective")},t:"What they can do",p:"A plain summary of this person's permissions, combining their role and assignments. Check it before you publish."},
+      {el:function(){return q(".acc")},t:"Override a page",p:"Role default follows the menu setting. Always allow opens a page for this person, and Block closes it."},
+      {el:function(){return $("imp-people")},t:"Invite many at once",p:"Download the CSV template with Email, Name, Role, Subjects and Classes, then load it. Admins are never added in bulk."}
+    ],
+    config:[
+      {el:function(){return $("cfg")},t:"The setup file",p:"This is everything you configured, written as one JSON file. Your Angular or React app reads it at start-up to build the menus, tests and access rules."},
+      {el:function(){return q('[data-act="exportcfg"]')},t:"Download a copy",p:"Save the current setup as a file, for a backup or to reuse in another course."},
+      {el:function(){return $("imp-config")},t:"Load a whole setup",p:"Load a setup file to replace everything at once. The preview checks it first, and you can undo right after."}
+    ]
+  };
+  var NUDGE={site:"A short tour shows what each setting on this page does.",menus:"A short tour shows how to rename, reorder, hide and restrict menus.",tests:"A short tour shows how to build tests and questions.",people:"A short tour shows how invites, assignments and page access work.",roles:"A short tour shows how to create roles like Teacher and set what they can see.",config:"A short tour explains the config file and how to load one."};
+  var tour=null,tourFrom=null;
+  function tsave(){try{localStorage.setItem(TKEY,JSON.stringify(seen))}catch(e){}}
+  function tvis(el){return el&&el.getClientRects().length>0}
+  function tourPos(){
+    if(!tour)return;
+    var card=$("tourCard"),hole=$("tourHole"),st=TOURS[tour.name][tour.i],el=st.el();if(!tvis(el))return;
+    var r=el.getBoundingClientRect(),vh=innerHeight,vw=innerWidth,pad=6,top=Math.max(r.top,70),h=Math.min(r.bottom,vh)-top;
+    if(r.height>vh*.55)h=Math.min(r.height,vh*.45);h=Math.max(h,24);
+    hole.style.left=Math.max(r.left-pad,4)+"px";hole.style.top=(top-pad)+"px";hole.style.width=Math.min(r.width+pad*2,vw-8)+"px";hole.style.height=(h+pad*2)+"px";
+    var cw=card.offsetWidth,ch=card.offsetHeight;
+    if(vw<600){card.style.left="12px";card.style.right="12px";card.style.width="auto";card.style.top="auto";card.style.bottom="12px";return}
+    card.style.right="auto";card.style.bottom="auto";card.style.width="";
+    var below=top+h+pad*2+14,x=Math.min(Math.max(r.left,12),vw-cw-12),y;
+    if(below+ch<vh-12)y=below;else if(top-pad-14-ch>12)y=top-pad-14-ch;else y=Math.max(vh-ch-16,12);
+    card.style.left=x+"px";card.style.top=y+"px";
+  }
+  function tourStep(dir){
+    var steps=TOURS[tour.name],st=steps[tour.i],el=st.el();
+    if(!tvis(el)){var n=tour.i+(dir||1);if(n>=0&&n<steps.length){tour.i=n;return tourStep(dir)}return endTour(true)}
+    el.style.scrollMarginTop="90px";
+    var tall=el.getBoundingClientRect().height>innerHeight*.55;
+    el.scrollIntoView({block:tall?"start":"center"});
+    $("tourN").textContent="Step "+(tour.i+1)+" of "+steps.length;$("tourT").textContent=st.t;$("tourP").textContent=st.p;
+    $("tourBack").hidden=tour.i===0;$("tourNext").textContent=tour.i===steps.length-1?"Done":"Next";
+    requestAnimationFrame(function(){tourPos();$("tourNext").focus()});
+  }
+  function startTour(name){
+    if(!TOURS[name])return;
+    closeNav(true);
+    if(name!=="overview"&&view!==name)go(name);
+    tourFrom=document.activeElement;tour={name:name,i:0};$("tourLayer").hidden=false;tourStep(1);
+  }
+  function endTour(){
+    if(!tour)return;seen[tour.name]=1;tsave();tour=null;$("tourLayer").hidden=true;
+    var n=document.querySelector(".nudge");if(n&&seen[view])n.hidden=true;
+    if(tourFrom&&tourFrom.focus)try{tourFrom.focus()}catch(e){}
+  }
+  $("tourNext").onclick=function(){if(tour.i>=TOURS[tour.name].length-1)endTour();else{tour.i++;tourStep(1)}};
+  $("tourBack").onclick=function(){if(tour.i>0){tour.i--;tourStep(-1)}};
+  $("tourSkip").onclick=function(){endTour()};
+  document.addEventListener("keydown",function(e){
+    if(!tour)return;
+    if(e.key==="Escape"){e.preventDefault();endTour()}
+    else if(e.key==="ArrowRight"){e.preventDefault();$("tourNext").click()}
+    else if(e.key==="ArrowLeft"){e.preventDefault();$("tourBack").click()}
+    else if(e.key==="Tab"){var f=[$("tourBack"),$("tourNext"),$("tourSkip")].filter(function(b){return !b.hidden}),i=f.indexOf(document.activeElement);e.preventDefault();f[(i+(e.shiftKey?f.length-1:1))%f.length].focus()}
+  },true);
+  window.addEventListener("resize",tourPos);window.addEventListener("scroll",tourPos,true);
+  document.addEventListener("click",function(e){
+    var t=e.target.closest("[data-tour]"),d=e.target.closest("[data-tourdismiss]");
+    if(t)startTour(t.dataset.tour);
+    if(d){seen[d.dataset.tourdismiss]=1;tsave();var n=d.closest(".nudge");if(n)n.hidden=true}
+  });
+  function tourChrome(){
+    var h=q("#view .head");if(!h||!TOURS[view])return;
+    h.insertAdjacentHTML("beforeend",'<div class="acts"><button class="btn ghost sm" type="button" data-tour="'+view+'">Take the tour of this page</button></div>');
+    if(!seen[view]){
+      var first=!seen.overview;
+      h.insertAdjacentHTML("afterend",'<div class="nudge"><span>'+(first?"New here? A one-minute tour shows how the admin page works. ":"New here? ")+(first?"":NUDGE[view])+'</span><span class="acts"><button class="btn sm" type="button" data-tour="'+(first?"overview":view)+'">Start the tour</button><button class="btn ghost sm" type="button" data-tourdismiss="'+(first?"overview":view)+'">Not now</button></span></div>');
+    }
+  }
+
+  render();
+})();
+</script>
+</body></html>

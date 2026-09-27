@@ -1,0 +1,33 @@
+@inject ISubjectService Subjects
+@inject AuthenticationStateProvider AuthState
+
+@* Ownership is checked once, here, so no section page can forget to do it. *@
+@if (!_loaded)
+{
+    <p class="muted">Loading…</p>
+}
+else if (!_owns)
+{
+    <NotYours />
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid SubjectId { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _loaded;
+    private bool _owns;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        _owns = await Subjects.OwnsAsync(userId, SubjectId);
+        _loaded = true;
+    }
+}

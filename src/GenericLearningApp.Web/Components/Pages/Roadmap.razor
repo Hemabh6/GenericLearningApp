@@ -1,0 +1,23 @@
+@page "/s/{SubjectId:guid}/roadmap"
+@attribute [Authorize]
+
+<PageTitle>Timeline &amp; Roadmap — Learning Desk</PageTitle>
+
+<SubjectPage SubjectId="SubjectId">
+    <div class="page">
+        <div class="sectionhead">
+            <div class="eyebrow">Timeline &amp; Roadmap</div>
+            <h2>My plan</h2>
+            <p class="muted">Set how long the plan runs, add phases, tasks and checkpoints, and the road and chart draw themselves.</p>
+        </div>
+
+        <div class="empty">
+            <h3>Nothing here yet</h3>
+            <p class="muted">The plan editor, road and Gantt arrive in slice 4.</p>
+        </div>
+    </div>
+</SubjectPage>
+
+@code {
+    [Parameter] public Guid SubjectId { get; set; }
+}

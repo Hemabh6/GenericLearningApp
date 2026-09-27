@@ -1,0 +1,91 @@
+@page "/s/{SubjectId:guid}"
+@attribute [Authorize]
+@inject ISubjectService Subjects
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>@(_summary?.Name ?? "Subject") — Learning Desk</PageTitle>
+
+@if (_loaded && _summary is null)
+{
+    <NotYours />
+}
+else if (_summary is not null)
+{
+    <div class="page">
+        <div class="band">
+            <div class="wrap">
+                <div class="eyebrow">Subject</div>
+                <h1>@_summary.Name</h1>
+                <p class="lede">
+                    Everything for this subject in one place: your notes, the watch and read list,
+                    a phased plan, and tests that remember your scores.
+                </p>
+                <div class="row">
+                    <a class="btn" href="@($"s/{SubjectId}/notes")">Open my notes</a>
+                    <a class="btn ghost" href="@($"s/{SubjectId}/roadmap")">See the roadmap</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="sectionhead"><h2>Where you stand</h2></div>
+        <div class="stats">
+            <div class="stat">
+                <span class="eyebrow">Items finished</span>
+                <b>@_summary.ItemsDone<span class="muted" style="font-size:20px"> / @_summary.ItemsTotal</span></b>
+                <div class="meter"><i style="width:@(_summary.ItemsPercent)%"></i></div>
+            </div>
+            <div class="stat">
+                <span class="eyebrow">Tasks finished</span>
+                <b>@_summary.TasksDone<span class="muted" style="font-size:20px"> / @_summary.TasksTotal</span></b>
+                <div class="meter"><i style="width:@(_summary.TasksPercent)%"></i></div>
+            </div>
+            <div class="stat">
+                <span class="eyebrow">Notes written</span>
+                <b>@_summary.NoteCount</b>
+            </div>
+            <div class="stat">
+                <span class="eyebrow">Best score</span>
+                <b>@(_summary.BestScore is null ? "—" : $"{_summary.BestScore} / {_summary.BestOutOf}")</b>
+            </div>
+        </div>
+
+        <div class="cards">
+            <a class="card" href="@($"s/{SubjectId}/content")">
+                <h3>Videos &amp; Content</h3>
+                <p class="muted">The watch and read list, with notes on every item.</p>
+                <span class="go">Open the list</span>
+            </a>
+            <a class="card" href="@($"s/{SubjectId}/notes")">
+                <h3>Notes &amp; Reference</h3>
+                <p class="muted">Write and search your own notes.</p>
+                <span class="go">Open notes</span>
+            </a>
+            <a class="card" href="@($"s/{SubjectId}/roadmap")">
+                <h3>Timeline &amp; Roadmap</h3>
+                <p class="muted">Phases, tasks and checkpoints you can tick off.</p>
+                <span class="go">Open roadmap</span>
+            </a>
+            <a class="card" href="@($"s/{SubjectId}/tests")">
+                <h3>Tests</h3>
+                <p class="muted">Check what you know and track your scores.</p>
+                <span class="go">Take a test</span>
+            </a>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid SubjectId { get; set; }
+
+    private SubjectSummary? _summary;
+    private bool _loaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        _summary = await Subjects.GetSummaryAsync(userId, SubjectId);
+        _loaded = true;
+    }
+}

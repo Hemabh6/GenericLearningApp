@@ -1,0 +1,13 @@
+# Caddy terminates TLS and proxies to Kestrel. WebSockets pass through untouched,
+# which a Blazor Server circuit depends on.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	reverse_proxy app:8080 {
+		# A circuit can sit idle between keystrokes; do not cut it short.
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}

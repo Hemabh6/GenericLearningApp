@@ -1,0 +1,23 @@
+@inject NavigationManager NavigationManager
+@inject SiteConfigStore Site
+
+@* Sign in and Create account are separate pages (each posts to its own Identity handler),
+   drawn as the design's two tabs. ReturnUrl is carried across. When an admin closes sign-ups,
+   the Create account tab goes away. *@
+<nav class="sp-tabs" aria-label="Account">
+    <a href="@Link("Account/Login")" aria-current="@(Register ? null : "page")">Sign in</a>
+    @if (Site.Current.Settings.AllowSignUp || Register)
+    {
+        <a href="@Link("Account/Register")" aria-current="@(Register ? "page" : null)">Create account</a>
+    }
+</nav>
+
+@code {
+    /// <summary>True when the Create account tab is the current page.</summary>
+    [Parameter] public bool Register { get; set; }
+
+    [Parameter] public string? ReturnUrl { get; set; }
+
+    private string Link(string path) =>
+        NavigationManager.GetUriWithQueryParameters(path, new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl });
+}

@@ -1,0 +1,344 @@
+@page "/admin/people"
+@layout AdminLayout
+@attribute [Authorize]
+@inject AdminAccountService Accounts
+@inject NavigationManager Nav
+@inject SiteConfigStore Site
+@inject IJSRuntime Js
+
+<PageTitle>People &amp; access — Admin</PageTitle>
+
+@if (!Shell.Actor.Has(AdminPermissions.People))
+{
+    <NoAccess />
+}
+else
+{
+    <div class="ad-head">
+        <h1>People &amp; access</h1>
+        <p>Invite people, give each a role, and fine-tune which menus a particular person can open. These changes apply straight away.</p>
+    </div>
+
+    <section class="ad-sec">
+        <h2>Invite someone</h2>
+        <div class="ad-inv">
+            <div class="ad-f">
+                <label for="ie">Email</label>
+                <input class="ad-fx" id="ie" type="email" placeholder="name@example.com" @bind="_inviteEmail" @bind:event="oninput" />
+            </div>
+            <div class="ad-f">
+                <label for="ir">Role</label>
+                <select class="ad-fx" id="ir" @bind="_inviteRole">
+                    @foreach (var role in InviteRoles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+                </select>
+            </div>
+            <button class="ad-btn" type="button" @onclick="InviteAsync">Create invite</button>
+        </div>
+        @if (_inviteError is not null)
+        {
+            <p class="ad-err" role="alert">@_inviteError</p>
+        }
+        @if (_invite is not null)
+        {
+            <div class="ad-invite-link">
+                <strong>@_invite.Email is set up.</strong>
+                <span class="ad-small ad-muted">
+                    This site can't send email yet, so pass this link on yourself. It lets them choose a password, and stops
+                    working after a day.
+                </span>
+                <code>@_invite.Link</code>
+                <div class="ad-acts">
+                    <button class="ad-btn ghost sm" type="button" @onclick="CopyInviteAsync">Copy link</button>
+                    <button class="ad-btn ghost sm" type="button" @onclick="() => _invite = null">Done</button>
+                </div>
+            </div>
+        }
+    </section>
+
+    <section class="ad-sec">
+        <h2>People</h2>
+        <div class="ad-acts">
+            <div class="ad-f" style="flex:1;min-width:220px">
+                <label for="ps">Search</label>
+                <input class="ad-fx" id="ps" type="search" placeholder="Search by email"
+                       @bind="_search" @bind:event="oninput" @bind:after="LoadAsync" />
+            </div>
+            <label class="ad-cb" style="align-self:end">
+                <input type="checkbox" @bind="_showGuests" @bind:after="LoadAsync" />
+                Show guests@(_list is { Guests: > 0 } ? $" ({_list.Guests})" : "")
+            </label>
+        </div>
+
+        @if (_list is null)
+        {
+            <p class="ad-muted">Loading…</p>
+        }
+        else
+        {
+            <div class="ad-tw">
+                <table>
+                    <thead><tr><th>Person</th><th>Role</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var p in _list.Rows)
+                    {
+                        var person = p;
+                        <tr class="@(person.Id == _selected?.Id ? "sel" : "")">
+                            <td>
+                                <div class="ad-who">
+                                    <strong>
+                                        @person.Name
+                                        @if (person.IsSuperAdmin) { <span class="ad-chip s">Super admin</span> }
+                                        @if (person.IsYou) { <span class="ad-chip">You</span> }
+                                    </strong>
+                                    <span class="ad-small ad-muted">@person.Email</span>
+                                </div>
+                            </td>
+                            <td>
+                                <select class="ad-fx" style="min-height:36px;padding:4px 8px" aria-label="Role for @person.Name"
+                                        disabled="@(!CanChangeRole(person))"
+                                        title="@RoleLockReason(person)"
+                                        value="@(person.Role ?? BuiltInRoles.Learner)"
+                                        @onchange="e => ChangeRoleAsync(person, e.Value?.ToString())">
+                                    @foreach (var role in RoleChoices)
+                                    {
+                                        <option value="@role">@role</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                @if (person.Status == "Invited") { <span class="ad-chip p">Invited</span> }
+                                else { <span class="ad-small ad-muted">@person.Status</span> }
+                                @if (person.Overrides > 0) { <span class="ad-chip c">@person.Overrides custom</span> }
+                            </td>
+                            <td style="white-space:nowrap">
+                                @if (person.Status != "Guest")
+                                {
+                                    <button class="ad-btn ghost sm" type="button" @onclick="() => SelectAsync(person)">Details</button>
+                                }
+                                @if (_confirmRemove == person.Id)
+                                {
+                                    <span class="ad-confirm">
+                                        <span class="ad-small">Delete this account and all its subjects and notes?</span>
+                                        <button class="ad-btn danger sm" type="button" @onclick="() => RemoveAsync(person)">Yes, remove</button>
+                                        <button class="ad-btn ghost sm" type="button" @onclick="() => _confirmRemove = null">Cancel</button>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <button class="ad-btn danger sm" type="button" aria-label="Remove @person.Name"
+                                            disabled="@(person.IsSuperAdmin || person.IsYou)"
+                                            title="@(person.IsSuperAdmin ? AccountRules.SuperAdminMessage : person.IsYou ? "You can't remove your own account from here." : "")"
+                                            @onclick="() => _confirmRemove = person.Id">Remove</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (_list.Rows.Count == 0)
+                    {
+                        <tr><td colspan="4" class="ad-muted">Nobody matches.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <p class="ad-small ad-muted">
+                @_list.Total @(_list.Total == 1 ? "person" : "people")@(_list.Guests > 0 ? $" and {_list.Guests} guest account{(_list.Guests == 1 ? "" : "s")}" : "").
+                The super admin is set in the server's configuration and can't be removed or demoted here. Roles are defined under
+                Roles &amp; permissions.
+            </p>
+        }
+    </section>
+
+    @if (_selected is { } sel)
+    {
+        <section class="ad-sec" id="effective">
+            <h2>What @sel.Name can do</h2>
+            @if (sel.IsSuperAdmin)
+            {
+                <p class="ad-note super">@AccountRules.SuperAdminMessage They always hold every permission.</p>
+            }
+            <p class="ad-small ad-muted">Role: @(sel.Role ?? BuiltInRoles.Learner).</p>
+            <div class="ad-eff">
+                @foreach (var perm in AdminPermissions.All)
+                {
+                    var yes = sel.IsSuperAdmin || AccountRules.IsAdmin(sel.Role) || RolePermissions(sel.Role).Contains(perm.Key);
+                    <span>@perm.Title</span>
+                    <span class="@(yes ? "ad-yes" : "ad-no")">@(yes ? "Yes" : "No")</span>
+                }
+            </div>
+        </section>
+
+        <section class="ad-sec">
+            <h2>Page access for @sel.Name</h2>
+            <p class="ad-small ad-muted">
+                Each menu starts from its "Who can see it" setting and the role. Change a row to override it for this person only.
+                Rows show the published menus.
+            </p>
+            <div class="ad-acc">
+                <span class="ad-h">Menu</span><span class="ad-h">Access</span><span class="ad-h">Result</span>
+                @foreach (var menu in Site.Current.Menus)
+                {
+                    var m = menu;
+                    var mode = _overrides.TryGetValue(m.Id, out var o) ? (OverrideMode?)o : null;
+                    var ok = MenuAccessRules.IsAllowed(m, new MenuViewer(true, sel.Role), mode);
+                    <span>@m.Name@(m.IsVisible ? "" : " (hidden)")</span>
+                    <select class="ad-fx" style="min-height:36px;padding:4px 8px"
+                            aria-label="Access to @m.Name for @sel.Name"
+                            value="@(mode?.ToString() ?? "Default")"
+                            @onchange="e => SetOverrideAsync(sel, m, e.Value?.ToString())">
+                        <option value="Default">Role default</option>
+                        <option value="Allow">Always allow</option>
+                        <option value="Block">Block</option>
+                    </select>
+                    <span class="@(ok ? "ad-yes" : "ad-no")">@(ok ? "Can open" : "No access")</span>
+                }
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [CascadingParameter] private AdminShell Shell { get; set; } = default!;
+
+    private PeopleList? _list;
+    private string _search = "";
+    private bool _showGuests;
+    private PersonRow? _selected;
+    private IReadOnlyDictionary<Guid, OverrideMode> _overrides = new Dictionary<Guid, OverrideMode>();
+    private string _inviteEmail = "";
+    private string _inviteRole = BuiltInRoles.Learner;
+    private string? _inviteError;
+    private InviteResult? _invite;
+    private string? _confirmRemove;
+
+    /// <summary>An admin can hand out any role; anyone else can't touch the Admin role.</summary>
+    private IEnumerable<string> RoleChoices => Shell.Roles.Select(r => r.Name)
+        .Where(n => Shell.Actor.IsAdmin || !AccountRules.IsAdmin(n));
+
+    private IEnumerable<string> InviteRoles => RoleChoices;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Shell.Actor.Has(AdminPermissions.People)) await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _list = await Accounts.ListPeopleAsync(Shell.User, _search, _showGuests);
+            Shell.PeopleCount = _list.Total;
+
+            // Keep the open details panel pointing at fresh data (or drop it if the person is gone).
+            _selected = _selected is null ? null : _list.Rows.FirstOrDefault(r => r.Id == _selected.Id);
+            Shell.Notify();
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+    }
+
+    private bool CanChangeRole(PersonRow p)
+        => !p.IsSuperAdmin && !p.IsYou && p.Status != "Guest" && (Shell.Actor.IsAdmin || !AccountRules.IsAdmin(p.Role));
+
+    private string RoleLockReason(PersonRow p)
+        => p.IsSuperAdmin ? AccountRules.SuperAdminMessage
+         : p.IsYou ? "You can't change your own role."
+         : p.Status == "Guest" ? "Guests don't have roles."
+         : !CanChangeRole(p) ? "Only an admin can change an admin's role."
+         : "";
+
+    private IReadOnlySet<string> RolePermissions(string? role)
+        => Shell.Roles.FirstOrDefault(r => string.Equals(r.Name, role ?? BuiltInRoles.Learner, StringComparison.OrdinalIgnoreCase))?.Permissions
+           ?? new HashSet<string>();
+
+    private async Task InviteAsync()
+    {
+        _inviteError = null;
+        _invite = null;
+
+        try
+        {
+            _invite = await Accounts.InviteAsync(Shell.User, _inviteEmail, _inviteRole, Nav.BaseUri);
+            _inviteEmail = "";
+            await LoadAsync();
+            await RefreshRolesAsync();
+        }
+        catch (AdminException ex)
+        {
+            _inviteError = ex.Message;
+        }
+    }
+
+    private async Task CopyInviteAsync()
+    {
+        if (_invite is null) return;
+        var ok = await Js.InvokeAsync<bool>("glaCopy", _invite.Link);
+        Shell.Toast(ok ? "Invite link copied." : "Couldn't copy. Select the link and copy it by hand.");
+    }
+
+    private async Task ChangeRoleAsync(PersonRow person, string? role)
+    {
+        try
+        {
+            await Accounts.ChangeRoleAsync(Shell.User, person.Id, role);
+            Shell.Toast($"{person.Name}'s role is now {role ?? BuiltInRoles.Learner}.");
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+
+        await LoadAsync();
+        await RefreshRolesAsync();
+    }
+
+    private async Task RemoveAsync(PersonRow person)
+    {
+        _confirmRemove = null;
+        try
+        {
+            await Accounts.RemoveAsync(Shell.User, person.Id);
+            if (_selected?.Id == person.Id) _selected = null;
+            Shell.Toast($"Removed {person.Name}.");
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+
+        await LoadAsync();
+        await RefreshRolesAsync();
+    }
+
+    private async Task SelectAsync(PersonRow person)
+    {
+        _selected = person;
+        _overrides = await Accounts.GetOverridesForAsync(Shell.User, person.Id);
+    }
+
+    private async Task SetOverrideAsync(PersonRow person, MenuDto menu, string? value)
+    {
+        OverrideMode? mode = value switch { "Allow" => OverrideMode.Allow, "Block" => OverrideMode.Block, _ => null };
+        try
+        {
+            await Accounts.SetMenuOverrideAsync(Shell.User, person.Id, menu.Id, mode);
+        }
+        catch (AdminException ex)
+        {
+            Shell.Toast(ex.Message);
+        }
+
+        _overrides = await Accounts.GetOverridesForAsync(Shell.User, person.Id);
+        await LoadAsync();
+    }
+
+    private async Task RefreshRolesAsync()
+    {
+        try { Shell.Roles = await Accounts.ListRolesAsync(Shell.User); Shell.Notify(); }
+        catch (AdminException) { }
+    }
+}
